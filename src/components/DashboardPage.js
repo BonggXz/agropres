@@ -4,7 +4,7 @@ import { ref, onValue, set, get, push, remove, update } from "firebase/database"
 import { auth, db } from '../firebase/config';
 import { FaLightbulb, FaVolumeUp, FaTrash, FaPlus, FaSave, FaEdit, FaTimes, FaClock, FaWifi, FaUser, FaBell } from 'react-icons/fa';
 import { BsSoundwave, BsWifi, BsWifiOff, BsCalendar3, BsGearFill } from 'react-icons/bs';
-import { IoMdLogOut, IoMdNotifications } from "react-icons/io";
+import { IoMdLogOut } from "react-icons/io";
 import { HiOutlineDevicePhoneMobile, HiSparkles } from "react-icons/hi2";
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
