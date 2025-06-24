@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase/config';
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FiEyeOff } from "react-icons/fi";
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
