@@ -26,7 +26,7 @@ const LoginPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100 font-sans">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
-        <h1 className="text-3xl font-bold text-center text-gray-800 font-heading">Raksa Digital</h1>
+        <h1 className="text-3xl font-bold text-center text-gray-800 font-heading">Agro Pres</h1>
         <p className="text-center text-gray-600">Silakan masuk untuk mengontrol sawah Anda.</p>
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
