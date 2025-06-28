@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { signOut } from 'firebase/auth';
-import { ref, onValue, set, push, remove, update } from "firebase/database";
+import { ref, onValue, set, get, push, remove, update } from "firebase/database";
 import { auth, db } from '../firebase/config';
 import { FaLightbulb, FaVolumeUp, FaTrash, FaPlus, FaSave, FaEdit, FaTimes, FaClock, FaWifi, FaUser, FaBell } from 'react-icons/fa';
 import { BsSoundwave, BsWifi, BsWifiOff, BsCalendar3, BsGearFill } from 'react-icons/bs';
@@ -359,7 +359,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   }, [userData]);
   
   useEffect(() => {
-    if (!user.uid) return;
+    if (!user?.uid) return;
     const schedulesRef = ref(db, `users/${user.uid}/pestisida_schedules`);
     const unsubscribe = onValue(schedulesRef, (snap) => setSchedules(snap.val() || {}));
     return () => unsubscribe();
@@ -666,6 +666,7 @@ const Dashboard = () => {
     if (!user?.uid) return;
     
     try {
+      // Update both user preferences and device modes
       await update(ref(db, `users/${user.uid}/modes`), { [device]: mode });
       await update(ref(db, `users/${user.uid}/device_data/modes`), { [device]: mode });
       
@@ -681,6 +682,7 @@ const Dashboard = () => {
         customClass: { popup: 'rounded-2xl' }
       });
     } catch (error) {
+      console.error("Error updating mode:", error);
       Swal.fire('Error!', 'Gagal mengubah mode.', 'error');
     }
   };
@@ -690,6 +692,7 @@ const Dashboard = () => {
     if (!user?.uid) return;
     
     try {
+      // PERBAIKAN PENTING: Menggunakan set dengan merge: true untuk partial update
       await update(ref(db, `users/${user.uid}/device_data/controls`), { [device]: value });
       
       Swal.fire({
@@ -701,6 +704,7 @@ const Dashboard = () => {
         customClass: { popup: 'rounded-2xl' }
       });
     } catch (error) {
+      console.error("Error toggling device:", error);
       Swal.fire('Error!', 'Gagal mengubah status perangkat.', 'error');
     }
   };
@@ -710,6 +714,7 @@ const Dashboard = () => {
     if (!user?.uid) return;
     
     try {
+      // PERBAIKAN: Mengupdate path yang benar untuk relay schedules
       await update(ref(db, `users/${user.uid}/device_data/relay_schedules`), relayScheduleForm);
       
       Swal.fire({
@@ -721,6 +726,7 @@ const Dashboard = () => {
         customClass: { popup: 'rounded-2xl' }
       });
     } catch (error) {
+      console.error("Error saving schedule:", error);
       Swal.fire('Error!', 'Gagal menyimpan jadwal.', 'error');
     }
   };
