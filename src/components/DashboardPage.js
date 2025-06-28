@@ -422,7 +422,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         
         // --- PERBAIKAN --- URL API diubah ke textmebot.com sesuai permintaan
         // Menambahkan "+" pada nomor telepon dan menggunakan parameter yang benar
-        const url = `http://api.textmebot.com/send.php?recipient=+${targetNumber}&apikey=${apiKey}&text=${encodeURIComponent(message)}`;
+        const url = `http://api.textmebot.com/send.php?recipient=+${targetNumber}&apikey=7HpsnhAjXW8n&text=${encodeURIComponent(message)}`;
         
         fetch(url)
           .then(res => {
@@ -440,7 +440,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   }, [schedules, userData, user.uid]);
 
   useEffect(() => {
-    const interval = setInterval(checkSchedules, 60000); // Cek setiap menit
+    const interval = setInterval(checkSchedules, 10000); // Cek setiap menit
     return () => clearInterval(interval);
   }, [checkSchedules]);
 
