@@ -418,7 +418,6 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         console.log(`Waktunya notifikasi untuk jadwal: ${schedule.note}`);
         const { targetNumber, message } = schedule;
         // Ganti nama variabel agar lebih jelas, meski field di DB tetap sama
-        const apiKey = userData.callmebot_apikey; 
         
         // --- PERBAIKAN --- URL API diubah ke textmebot.com sesuai permintaan
         // Menambahkan "+" pada nomor telepon dan menggunakan parameter yang benar
