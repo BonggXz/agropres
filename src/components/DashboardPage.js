@@ -615,7 +615,9 @@ const Dashboard = () => {
 
   // Auth state listener
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(setUser);
+    const unsubscribe = auth.onAuthStateChanged((authUser) => {
+      setUser(authUser);
+    });
     return () => unsubscribe();
   }, []);
 
