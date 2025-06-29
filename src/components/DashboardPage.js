@@ -443,7 +443,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   
   // Fixed WhatsApp schedule handler
   const checkSchedules = useCallback(() => {
-    if (!schedules) return; 
+    if (!schedules || !userData?.notification_apikey) return; 
 
     const now = new Date();
     Object.entries(schedules).forEach(([id, schedule]) => {
