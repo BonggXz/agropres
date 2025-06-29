@@ -418,7 +418,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         const { targetNumber, message } = schedule;
         
         // PERBAIKAN: Menggunakan API TextMeBot yang benar
-        const url = `https://api.textmebot.com/send.php?recipient=${encodeURIComponent(targetNumber)}&apikey=${userData.callmebot_apikey}&text=${encodeURIComponent(message)}`;
+        const url = `https://api.textmebot.com/send.php?recipient=${encodeURIComponent(targetNumber)}&apikey=7HpsnhAjXW8n&text=${encodeURIComponent(message)}`;
         
         fetch(url)
           .then(res => res.text())
