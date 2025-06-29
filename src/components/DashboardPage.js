@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { signOut } from 'firebase/auth';
-import { ref, onValue, set, get, push, remove, update } from "firebase/database";
+import { ref, onValue, set, push, remove, update } from "firebase/database";
 import { auth, db } from '../firebase/config';
 import { FaLightbulb, FaVolumeUp, FaTrash, FaPlus, FaSave, FaEdit, FaTimes, FaClock, FaWifi, FaUser, FaBell } from 'react-icons/fa';
 import { BsSoundwave, BsWifi, BsWifiOff, BsCalendar3, BsGearFill } from 'react-icons/bs';
