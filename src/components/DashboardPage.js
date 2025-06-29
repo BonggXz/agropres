@@ -394,7 +394,8 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         note: newSchedule.note,
         targetNumber: newSchedule.targetNumber,
         message: newSchedule.message,
-        status: 'active'
+        status: 'active',
+        last_sent: null // Tambahkan field untuk mencatat pengiriman terakhir
       });
       setNewSchedule({ date: '', time: '', note: '', targetNumber: userData?.whatsapp_number || '', message: '' });
       Swal.fire({
@@ -441,31 +442,52 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
     }
   };
   
-  // Fixed WhatsApp schedule handler
-  const checkSchedules = useCallback(() => {
+  // PERBAIKAN: Fungsi pengecekan jadwal WA dengan pencegahan spam
+  const checkSchedules = useCallback(async () => {
     if (!schedules || !userData?.notification_apikey) return; 
 
     const now = new Date();
-    Object.entries(schedules).forEach(([id, schedule]) => {
-      if (schedule.status === 'active' && new Date(schedule.datetime) <= now) {
-        console.log(`Waktunya notifikasi untuk jadwal: ${schedule.note}`);
-        const { targetNumber, message } = schedule;
+    for (const [id, schedule] of Object.entries(schedules)) {
+      // Hanya proses jadwal aktif yang belum pernah dikirim hari ini
+      if (schedule.status === 'active') {
+        const scheduleTime = new Date(schedule.datetime);
         
-        const url = `https://api.textmebot.com/send.php?recipient=${encodeURIComponent(targetNumber)}&apikey=7HpsnhAjXW8n&text=${encodeURIComponent(message)}`;
+        // Periksa apakah jadwal sudah lewat waktunya
+        const isTimeToSend = now >= scheduleTime;
+        
+        // Periksa apakah sudah dikirim hari ini
+        const lastSent = schedule.last_sent ? new Date(schedule.last_sent) : null;
+        const isAlreadySentToday = lastSent && 
+          lastSent.getDate() === now.getDate() &&
+          lastSent.getMonth() === now.getMonth() &&
+          lastSent.getFullYear() === now.getFullYear();
+        
+        if (isTimeToSend && !isAlreadySentToday) {
+          console.log(`Waktunya notifikasi untuk jadwal: ${schedule.note}`);
+          const { targetNumber, message } = schedule;
+          
+          const url = `https://api.textmebot.com/send.php?recipient=${encodeURIComponent(targetNumber)}&apikey=7HpsnhAjXW8n&text=${encodeURIComponent(message)}`;
 
-        fetch(url)
-          .then(res => res.text())
-          .then(responseText => {
+          try {
+            const response = await fetch(url);
+            const responseText = await response.text();
+            
             if (responseText.includes("Message sent")) {
               console.log("Notifikasi WhatsApp berhasil dikirim");
-              update(ref(db, `users/${user.uid}/pestisida_schedules/${id}`), { status: 'sent' });
+              
+              // Update database dengan timestamp pengiriman
+              await update(ref(db, `users/${user.uid}/pestisida_schedules/${id}`), { 
+                last_sent: new Date().toISOString() 
+              });
             } else {
               console.error("Gagal mengirim:", responseText);
             }
-          })
-          .catch(err => console.error("Gagal mengirim notifikasi:", err));
+          } catch (err) {
+            console.error("Gagal mengirim notifikasi:", err);
+          }
+        }
       }
-    });
+    }
   }, [schedules, userData, user.uid]);
 
   useEffect(() => {
@@ -580,7 +602,6 @@ const DashboardPage = ({ user }) => {
             const data = snap.val();
             setDeviceData(data);
             if (data?.relay_schedules) {
-              // Pastikan form tidak di-reset jika data dari firebase belum lengkap
               const currentSchedules = {
                 uv_light: { on_time: data.relay_schedules.uv_light?.on_time || '', off_time: data.relay_schedules.uv_light?.off_time || '' },
                 ultrasonic: { on_time: data.relay_schedules.ultrasonic?.on_time || '', off_time: data.relay_schedules.ultrasonic?.off_time || '' },
@@ -654,7 +675,6 @@ const DashboardPage = ({ user }) => {
     controlsToCheck.forEach(control => {
       const mode = deviceData.control_modes[control];
       
-      // Hanya proses jika mode adalah 'auto'
       if (mode === 'auto') {
         const schedule = deviceData.relay_schedules[control];
         const currentState = deviceData.controls?.[control] ?? false;
@@ -663,18 +683,16 @@ const DashboardPage = ({ user }) => {
           const { on_time, off_time } = schedule;
           let expectedState = false;
 
-          // Cek jika jadwal melewati tengah malam (misal: 22:00 - 05:00)
           if (on_time > off_time) { 
             if (currentTime >= on_time || currentTime < off_time) {
               expectedState = true;
             }
-          } else { // Jadwal di hari yang sama (misal: 08:00 - 17:00)
+          } else {
             if (currentTime >= on_time && currentTime < off_time) {
               expectedState = true;
             }
           }
           
-          // Jika status yang diharapkan berbeda dengan status saat ini, update Firebase
           if (expectedState !== currentState) {
             console.log(`Mode Otomatis: Mengubah status ${control} menjadi ${expectedState}`);
             set(ref(db, `devices/${userData.device_id}/controls/${control}`), expectedState);
@@ -684,7 +702,6 @@ const DashboardPage = ({ user }) => {
     });
   }, [deviceData, userData?.device_id]);
 
-  // Menjalankan pengecekan jadwal otomatis secara periodik
   useEffect(() => {
     const interval = setInterval(handleAutoModeCheck, 15000); 
     return () => clearInterval(interval);
@@ -722,9 +739,7 @@ const DashboardPage = ({ user }) => {
       <motion.div initial="hidden" animate="visible" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader user={user} />
         
-        {/* PERBAIKAN LAYOUT: Grid responsive */}
         <main className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {/* Main Content Area */}
           <div className="space-y-8 md:col-span-2">
             <StatusCard isOnline={isOnline} />
             <ControlCard 
@@ -736,7 +751,6 @@ const DashboardPage = ({ user }) => {
             />
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-8">
             <ScheduleCard 
               deviceData={deviceData}
