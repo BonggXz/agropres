@@ -316,17 +316,37 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
                 <div className="space-y-3">
                     <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700"><FaLightbulb className="w-4 h-4 text-yellow-600" /><span>Jadwal Lampu UV</span></label>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
-                        <input type="time" value={relayScheduleForm.uv_light.on_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, uv_light: {...relayScheduleForm.uv_light, on_time: e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200 text-center"/>
+                        <input 
+                          type="time" 
+                          value={relayScheduleForm.uv_light.on_time} 
+                          onChange={e => setRelayScheduleForm({...relayScheduleForm, uv_light: {...relayScheduleForm.uv_light, on_time: e.target.value}})} 
+                          className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200 text-center text-gray-800"
+                        />
                         <span className="text-gray-400 font-bold hidden sm:block">—</span>
-                        <input type="time" value={relayScheduleForm.uv_light.off_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, uv_light: {...relayScheduleForm.uv_light, off_time: e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200 text-center"/>
+                        <input 
+                          type="time" 
+                          value={relayScheduleForm.uv_light.off_time} 
+                          onChange={e => setRelayScheduleForm({...relayScheduleForm, uv_light: {...relayScheduleForm.uv_light, off_time: e.target.value}})} 
+                          className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200 text-center text-gray-800"
+                        />
                     </div>
                 </div>
                 <div className="space-y-3">
                     <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700"><FaVolumeUp className="w-4 h-4 text-blue-600" /><span>Jadwal Suara Ultrasonik</span></label>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
-                        <input type="time" value={relayScheduleForm.ultrasonic.on_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, ultrasonic: {...relayScheduleForm.ultrasonic, on_time: e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center"/>
+                        <input 
+                          type="time" 
+                          value={relayScheduleForm.ultrasonic.on_time} 
+                          onChange={e => setRelayScheduleForm({...relayScheduleForm, ultrasonic: {...relayScheduleForm.ultrasonic, on_time: e.target.value}})} 
+                          className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center text-gray-800"
+                        />
                         <span className="text-gray-400 font-bold hidden sm:block">—</span>
-                        <input type="time" value={relayScheduleForm.ultrasonic.off_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, ultrasonic: {...relayScheduleForm.ultrasonic, off_time: e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center"/>
+                        <input 
+                          type="time" 
+                          value={relayScheduleForm.ultrasonic.off_time} 
+                          onChange={e => setRelayScheduleForm({...relayScheduleForm, ultrasonic: {...relayScheduleForm.ultrasonic, off_time: e.target.value}})} 
+                          className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center text-gray-800"
+                        />
                     </div>
                 </div>
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -343,7 +363,6 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
   );
 });
 
-// --- PERBAIKAN --- Komponen WhatsApp dengan URL API yang sudah diperbaiki
 const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   const [schedules, setSchedules] = useState({});
   const [newSchedule, setNewSchedule] = useState({ date: '', time: '', note: '', targetNumber: '', message: '' });
@@ -378,9 +397,19 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         status: 'active'
       });
       setNewSchedule({ date: '', time: '', note: '', targetNumber: userData?.whatsapp_number || '', message: '' });
-      Swal.fire('Jadwal Ditambahkan!', `Pengingat akan dikirim pada ${scheduleTime.toLocaleString('id-ID')}`, 'success');
+      Swal.fire({
+        title: 'Jadwal Ditambahkan!',
+        text: `Pengingat akan dikirim pada ${scheduleTime.toLocaleString('id-ID')}`,
+        icon: 'success',
+        customClass: { popup: 'rounded-2xl' }
+      });
     } catch (error) {
-      Swal.fire('Error!', 'Gagal menambahkan jadwal.', 'error');
+      Swal.fire({
+        title: 'Error!',
+        text: 'Gagal menambahkan jadwal.',
+        icon: 'error',
+        customClass: { popup: 'rounded-2xl' }
+      });
     }
   };
 
@@ -393,7 +422,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
       confirmButtonText: 'Ya, Hapus!',
       cancelButtonText: 'Batal',
       customClass: {
-        popup: 'rounded-2xl',
+        popup: 'rounded-2xl shadow-xl',
         confirmButton: 'px-4 py-2 text-white bg-red-600 rounded-lg font-semibold hover:bg-red-700 transition-colors',
         cancelButton: 'px-4 py-2 text-white bg-gray-500 rounded-lg font-semibold hover:bg-gray-600 transition-colors',
         actions: 'gap-4',
@@ -403,13 +432,18 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
 
     if (result.isConfirmed) {
       await remove(ref(db, `users/${user.uid}/pestisida_schedules/${id}`));
-      Swal.fire('Berhasil Dihapus!', 'Jadwal telah dihapus.', 'success');
+      Swal.fire({
+        title: 'Berhasil Dihapus!',
+        text: 'Jadwal telah dihapus.',
+        icon: 'success',
+        customClass: { popup: 'rounded-2xl' }
+      });
     }
   };
   
-  // --- PERBAIKAN UTAMA: WhatsApp schedule handler ---
+  // Fixed WhatsApp schedule handler
   const checkSchedules = useCallback(() => {
-    if (!schedules || !userData?.callmebot_apikey) return; 
+    if (!schedules) return; 
 
     const now = new Date();
     Object.entries(schedules).forEach(([id, schedule]) => {
@@ -417,9 +451,8 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         console.log(`Waktunya notifikasi untuk jadwal: ${schedule.note}`);
         const { targetNumber, message } = schedule;
         
-        // PERBAIKAN: Menggunakan API TextMeBot yang benar
         const url = `https://api.textmebot.com/send.php?recipient=${encodeURIComponent(targetNumber)}&apikey=7HpsnhAjXW8n&text=${encodeURIComponent(message)}`;
-        
+
         fetch(url)
           .then(res => res.text())
           .then(responseText => {
@@ -436,7 +469,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   }, [schedules, userData, user.uid]);
 
   useEffect(() => {
-    const interval = setInterval(checkSchedules, 60000); // Cek setiap menit
+    const interval = setInterval(checkSchedules, 60000);
     return () => clearInterval(interval);
   }, [checkSchedules]);
 
@@ -450,12 +483,45 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         </div>
         <form onSubmit={handleAddSchedule} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="date" value={newSchedule.date} onChange={e => setNewSchedule({...newSchedule, date: e.target.value})} required className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
-            <input type="time" value={newSchedule.time} onChange={e => setNewSchedule({...newSchedule, time: e.target.value})} required className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
+            <input 
+              type="date" 
+              value={newSchedule.date} 
+              onChange={e => setNewSchedule({...newSchedule, date: e.target.value})} 
+              required 
+              className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 text-gray-800"
+            />
+            <input 
+              type="time" 
+              value={newSchedule.time} 
+              onChange={e => setNewSchedule({...newSchedule, time: e.target.value})} 
+              required 
+              className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 text-gray-800"
+            />
           </div>
-          <input type="text" value={newSchedule.targetNumber} onChange={e => setNewSchedule({...newSchedule, targetNumber: e.target.value})} required placeholder="Nomor WA (cth: 62812...)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
-          <textarea value={newSchedule.message} onChange={e => setNewSchedule({...newSchedule, message: e.target.value})} required placeholder="Isi pesan notifikasi..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="3"/>
-          <textarea value={newSchedule.note} onChange={e => setNewSchedule({...newSchedule, note: e.target.value})} required placeholder="Catatan pribadi (tidak dikirim)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="2"/>
+          <input 
+            type="text" 
+            value={newSchedule.targetNumber} 
+            onChange={e => setNewSchedule({...newSchedule, targetNumber: e.target.value})} 
+            required 
+            placeholder="Nomor WA (cth: 62812...)" 
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 text-gray-800"
+          />
+          <textarea 
+            value={newSchedule.message} 
+            onChange={e => setNewSchedule({...newSchedule, message: e.target.value})} 
+            required 
+            placeholder="Isi pesan notifikasi..." 
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none text-gray-800" 
+            rows="3"
+          />
+          <textarea 
+            value={newSchedule.note} 
+            onChange={e => setNewSchedule({...newSchedule, note: e.target.value})} 
+            required 
+            placeholder="Catatan pribadi (tidak dikirim)" 
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none text-gray-800" 
+            rows="2"
+          />
           <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center space-x-2">
             <FaPlus className="w-4 h-4" /><span>Tambah Jadwal</span>
           </motion.button>
@@ -467,6 +533,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
               {Object.entries(schedules).filter(([_, s]) => s.status === 'active').length > 0 ? 
                 Object.entries(schedules)
                   .filter(([_, s]) => s.status === 'active')
+                  .sort((a, b) => new Date(a[1].datetime) - new Date(b[1].datetime))
                   .map(([id, schedule]) => (
                     <motion.div key={id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20, transition: { duration: 0.2 } }} className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                       <div className="flex-1">
@@ -539,7 +606,12 @@ const DashboardPage = ({ user }) => {
     const controlRef = ref(db, `devices/${userData.device_id}/controls/${control}`);
     set(controlRef, value).catch(error => {
         console.error("Gagal update ke Firebase:", error);
-        Swal.fire('Update Gagal', 'Gagal mengubah status perangkat. Cek koneksi Anda.', 'error');
+        Swal.fire({
+          title: 'Update Gagal', 
+          text: 'Gagal mengubah status perangkat. Cek koneksi Anda.', 
+          icon: 'error',
+          customClass: { popup: 'rounded-2xl' }
+        });
     });
   }, [userData]);
   
@@ -554,8 +626,7 @@ const DashboardPage = ({ user }) => {
         title: 'Jadwal Disimpan!',
         text: 'Jadwal otomatis telah diperbarui.',
         icon: 'success',
-        confirmButtonColor: '#10b981',
-        customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl' }
+        customClass: { popup: 'rounded-2xl' }
       });
     } catch (error) {
       Swal.fire({
@@ -567,14 +638,16 @@ const DashboardPage = ({ user }) => {
     }
   }, [userData, relayScheduleForm]);
 
-  // --- PERBAIKAN --- Logika baru untuk mengeksekusi jadwal otomatis
+  // Fixed auto mode schedule execution
   const handleAutoModeCheck = useCallback(() => {
     if (!deviceData?.control_modes || !deviceData?.relay_schedules || !userData?.device_id) {
       return;
     }
 
     const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const currentHours = now.getHours().toString().padStart(2, '0');
+    const currentMinutes = now.getMinutes().toString().padStart(2, '0');
+    const currentTime = `${currentHours}:${currentMinutes}`;
     
     const controlsToCheck = ['uv_light', 'ultrasonic'];
 
@@ -611,11 +684,9 @@ const DashboardPage = ({ user }) => {
     });
   }, [deviceData, userData?.device_id]);
 
-  // --- PERBAIKAN --- Menjalankan pengecekan jadwal otomatis secara periodik
+  // Menjalankan pengecekan jadwal otomatis secara periodik
   useEffect(() => {
-    // Jalankan pengecekan setiap 15 detik. Cukup untuk jadwal berbasis menit.
     const interval = setInterval(handleAutoModeCheck, 15000); 
-    
     return () => clearInterval(interval);
   }, [handleAutoModeCheck]);
 
@@ -624,7 +695,7 @@ const DashboardPage = ({ user }) => {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <div className="relative w-20 h-20">
+          <div className="relative w-20 h-20 mx-auto">
             <motion.div 
               className="absolute w-full h-full border-4 border-blue-200 border-t-blue-600 rounded-full"
               animate={{ rotate: 360 }}
