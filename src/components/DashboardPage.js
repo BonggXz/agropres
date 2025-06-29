@@ -26,24 +26,24 @@ const cardVariants = {
 // --- UTILITY & UI COMPONENTS (Memoized for Performance) ---
 
 const CustomSwitch = memo(({ isChecked, onChange, disabled = false, colorScheme = 'blue' }) => {
-  const bgColor = isChecked 
+  const bgColor = isChecked 
     ? colorScheme === 'yellow' ? 'bg-gradient-to-r from-yellow-400 to-orange-400' : 'bg-gradient-to-r from-blue-500 to-purple-600'
     : 'bg-gradient-to-r from-gray-200 to-gray-300';
   const cursor = disabled ? 'cursor-not-allowed' : 'cursor-pointer';
 
   return (
-    <div 
-      onClick={!disabled ? onChange : undefined} 
+    <div 
+      onClick={!disabled ? onChange : undefined} 
       className={`flex items-center h-8 w-14 rounded-full transition-colors duration-300 relative ${cursor} ${bgColor} ${disabled ? 'opacity-50' : ''} p-1 ${isChecked ? 'justify-end' : 'justify-start'}`}
     >
-      <motion.div 
+      <motion.div 
         layout
         transition={{ type: "spring", stiffness: 700, damping: 35 }}
-        className="h-6 w-6 bg-white rounded-full shadow-md" 
+        className="h-6 w-6 bg-white rounded-full shadow-md" 
       />
        <AnimatePresence>
         {isChecked && (
-           <motion.div 
+           <motion.div 
              className="absolute right-2 top-1/2 -translate-y-1/2"
              initial={{ scale: 0, opacity: 0 }}
              animate={{ scale: 1, opacity: 1 }}
@@ -65,13 +65,13 @@ const ModeControl = memo(({ mode, onModeChange }) => {
   return (
     <div className="flex items-center p-1.5 space-x-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-inner">
       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-        onClick={() => onModeChange('manual')} 
+        onClick={() => onModeChange('manual')} 
         className={`${baseClasses} ${mode === 'manual' ? activeClasses : inactiveClasses}`}
       >
         Manual
       </motion.button>
       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-        onClick={() => onModeChange('auto')} 
+        onClick={() => onModeChange('auto')} 
         className={`${baseClasses} ${mode === 'auto' ? activeClasses : inactiveClasses}`}
       >
         Otomatis
@@ -120,7 +120,7 @@ const DashboardHeader = memo(({ user }) => {
       }
     }
   };
-  
+  
   return (
     <motion.header custom={0} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100 mb-8">
       <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full -translate-y-20 translate-x-20 opacity-50"></div>
@@ -141,7 +141,7 @@ const DashboardHeader = memo(({ user }) => {
           </div>
         </div>
         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-          onClick={handleLogout} 
+          onClick={handleLogout} 
           className="inline-flex items-center px-6 py-3 text-sm font-semibold text-red-700 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/20"
         >
           <IoMdLogOut className="w-5 h-5 mr-2" />
@@ -164,10 +164,10 @@ const StatusCard = memo(({ isOnline }) => (
           <HiOutlineDevicePhoneMobile className={`w-6 h-6 ${isOnline ? 'text-green-600' : 'text-red-600'} transition-colors`} />
         </div>
       </div>
-      
+      
       <div className={`flex items-center justify-between p-6 rounded-2xl ${
-        isOnline 
-          ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' 
+        isOnline 
+          ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' 
           : 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200'
       } transition-all duration-300`}>
         <div className="flex items-center space-x-4">
@@ -225,11 +225,11 @@ const ControlCard = memo(({ deviceData, uvMode, ultrasonicMode, handleModeChange
             <span className={`text-sm font-semibold transition-colors ${uvMode === 'manual' ? 'text-gray-700' : 'text-gray-400'}`}>
               Kontrol Manual
             </span>
-            <CustomSwitch 
-              isChecked={!!deviceData?.controls?.uv_light} 
-              onChange={() => handleManualToggle('uv_light', !deviceData?.controls?.uv_light)} 
-              disabled={uvMode !== 'manual'} 
-              colorScheme="yellow" 
+            <CustomSwitch 
+              isChecked={!!deviceData?.controls?.uv_light} 
+              onChange={() => handleManualToggle('uv_light', !deviceData?.controls?.uv_light)} 
+              disabled={uvMode !== 'manual'} 
+              colorScheme="yellow" 
             />
           </div>
         </div>
@@ -252,11 +252,11 @@ const ControlCard = memo(({ deviceData, uvMode, ultrasonicMode, handleModeChange
             <span className={`text-sm font-semibold transition-colors ${ultrasonicMode === 'manual' ? 'text-gray-700' : 'text-gray-400'}`}>
               Kontrol Manual
             </span>
-            <CustomSwitch 
-              isChecked={!!deviceData?.controls?.ultrasonic} 
-              onChange={() => handleManualToggle('ultrasonic', !deviceData?.controls?.ultrasonic)} 
-              disabled={ultrasonicMode !== 'manual'} 
-            	colorScheme="blue" 
+            <CustomSwitch 
+              isChecked={!!deviceData?.controls?.ultrasonic} 
+              onChange={() => handleManualToggle('ultrasonic', !deviceData?.controls?.ultrasonic)} 
+              disabled={ultrasonicMode !== 'manual'} 
+            	colorScheme="blue" 
             />
           </div>
         </div>
@@ -282,7 +282,7 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
             </h2>
           </div>
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-            onClick={() => setIsEditing(!isEditing)} 
+            onClick={() => setIsEditing(!isEditing)} 
             className={`p-3 rounded-xl transition-all duration-300 ${
               isEditing ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
             }`}
@@ -330,7 +330,7 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
                     </div>
                 </div>
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                onClick={() => { handleRelayScheduleSave(); setIsEditing(false); }} 
+                onClick={() => { handleRelayScheduleSave(); setIsEditing(false); }} 
                 className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-2"
               >
                 <FaSave className="w-4 h-4" /><span>Simpan Jadwal</span>
@@ -343,7 +343,6 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
   );
 });
 
-// --- PERBAIKAN --- Komponen WhatsApp dengan URL API yang sudah diperbaiki
 const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   const [schedules, setSchedules] = useState({});
   const [newSchedule, setNewSchedule] = useState({ date: '', time: '', note: '', targetNumber: '', message: '' });
@@ -353,7 +352,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
       setNewSchedule(prev => ({ ...prev, targetNumber: userData.whatsapp_number }));
     }
   }, [userData]);
-  
+  
   useEffect(() => {
     if (!user.uid) return;
     const schedulesRef = ref(db, `users/${user.uid}/pestisida_schedules`);
@@ -367,7 +366,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
       Swal.fire('Form Tidak Lengkap!', 'Harap isi semua kolom jadwal.', 'warning');
       return;
     }
-    
+    
     const scheduleTime = new Date(`${newSchedule.date}T${newSchedule.time}`);
     try {
       await push(ref(db, `users/${user.uid}/pestisida_schedules`), {
@@ -406,40 +405,44 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
       Swal.fire('Berhasil Dihapus!', 'Jadwal telah dihapus.', 'success');
     }
   };
-  
-  // --- PERBAIKAN --- Logika pengecekan jadwal WA dengan API baru
+  
   const checkSchedules = useCallback(() => {
-    // Gunakan callmebot_apikey dari db, asumsikan user menyimpan API Key textmebot di field ini.
-    if (!schedules || !userData?.callmebot_apikey) return; 
+    // Cek jika jadwal atau user data belum siap
+    if (!schedules || !user.uid) return; 
 
     const now = new Date();
     Object.entries(schedules).forEach(([id, schedule]) => {
       if (schedule.status === 'active' && new Date(schedule.datetime) <= now) {
-        console.log(`Waktunya notifikasi untuk jadwal: ${schedule.note}`);
+        console.log(`Mencoba mengirim notifikasi untuk jadwal: ${schedule.note}`);
         const { targetNumber, message } = schedule;
-        // Ganti nama variabel agar lebih jelas, meski field di DB tetap sama
-        
-        // --- PERBAIKAN --- URL API diubah ke textmebot.com sesuai permintaan
-        // Menambahkan "+" pada nomor telepon dan menggunakan parameter yang benar
+
+        // Menggunakan URL dan API Key yang di-hardcode sesuai permintaan Anda.
         const url = `http://api.textmebot.com/send.php?recipient=+${targetNumber}&apikey=7HpsnhAjXW8n&text=${encodeURIComponent(message)}`;
-        
+        
         fetch(url)
           .then(res => {
-            // Textmebot API seringkali merespon dengan status text/html, jadi kita cek `res.ok` saja
+            // Cek jika response dari API adalah OK (status code 200-299)
             if (res.ok) {
-              console.log("Notifikasi WhatsApp berhasil dikirim.");
+              console.log("Notifikasi WhatsApp berhasil terkirim.");
               update(ref(db, `users/${user.uid}/pestisida_schedules/${id}`), { status: 'sent' });
             } else {
-              console.error("Gagal mengirim notifikasi, respons API tidak OK:", res.status);
-            }
+              // Jika gagal, log status errornya untuk debugging
+              console.error("Gagal mengirim notifikasi, respons API tidak OK. Status:", res.status);
+            }
           })
-          .catch(err => console.error("Gagal mengirim notifikasi:", err));
+          .catch(err => {
+            // Tangkap error jaringan atau CORS dan log di konsol.
+            // **PENTING**: Jika Anda melihat error 'CORS policy' di sini, itu berarti masalahnya bukan di kode,
+            // tapi karena browser memblokir permintaan tersebut.
+            console.error("Fetch Gagal! Kemungkinan karena error CORS atau jaringan. Error:", err)
+          });
       }
     });
-  }, [schedules, userData, user.uid]);
+  }, [schedules, user.uid]); // Hapus userData dari dependency karena API Key di-hardcode
 
   useEffect(() => {
-    const interval = setInterval(checkSchedules, 10000); // Cek setiap menit
+    // Cek setiap 10 detik sesuai kode Anda
+    const interval = setInterval(checkSchedules, 10000); 
     return () => clearInterval(interval);
   }, [checkSchedules]);
 
@@ -476,9 +479,9 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
                     <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSchedule(id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><FaTrash className="w-4 h-4" /></motion.button>
                   </motion.div>
               )) : (<p className="text-center text-sm text-gray-500 py-4">Belum ada jadwal aktif</p>)}
-                  {Object.values(schedules).every(s => s.status !== 'active') && Object.keys(schedules).length > 0 && (
-                    <p className="text-center text-sm text-gray-500 py-4">Belum ada jadwal aktif</p>
-                  )}
+                  {Object.values(schedules).every(s => s.status !== 'active') && Object.keys(schedules).length > 0 && (
+                    <p className="text-center text-sm text-gray-500 py-4">Belum ada jadwal aktif</p>
+                  )}
             </AnimatePresence>
           </div>
         </div>
@@ -494,15 +497,15 @@ const DashboardPage = ({ user }) => {
   const [deviceData, setDeviceData] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [relayScheduleForm, setRelayScheduleForm] = useState({ 
-    uv_light: { on_time: '', off_time: '' }, 
+  const [relayScheduleForm, setRelayScheduleForm] = useState({ 
+    uv_light: { on_time: '', off_time: '' }, 
     ultrasonic: { on_time: '', off_time: '' }
   });
 
   useEffect(() => {
     if (!user.uid) return;
     const userRef = ref(db, `users/${user.uid}`);
-    
+    
     get(userRef).then(snapshot => {
       if (snapshot.exists()) {
         const uData = snapshot.val();
@@ -514,12 +517,12 @@ const DashboardPage = ({ user }) => {
             const data = snap.val();
             setDeviceData(data);
             if (data?.relay_schedules) {
-              // Pastikan form tidak di-reset jika data dari firebase belum lengkap
+              // Pastikan form tidak di-reset jika data dari firebase belum lengkap
             	const currentSchedules = {
             		uv_light: { on_time: data.relay_schedules.uv_light?.on_time || '', off_time: data.relay_schedules.uv_light?.off_time || '' },
             		ultrasonic: { on_time: data.relay_schedules.ultrasonic?.on_time || '', off_time: data.relay_schedules.ultrasonic?.off_time || '' },
             	}
-              setRelayScheduleForm(currentSchedules);
+              setRelayScheduleForm(currentSchedules);
             }
             setLoading(false);
           });
@@ -543,10 +546,10 @@ const DashboardPage = ({ user }) => {
         Swal.fire('Update Gagal', 'Gagal mengubah status perangkat. Cek koneksi Anda.', 'error');
     });
   }, [userData]);
-  
+  
   const handleRelayScheduleSave = useCallback(async () => {
     if (!userData?.device_id) return;
-    
+    
     try {
       await update(ref(db), {
         [`/devices/${userData.device_id}/relay_schedules`]: relayScheduleForm
@@ -569,56 +572,56 @@ const DashboardPage = ({ user }) => {
   }, [userData, relayScheduleForm]);
 
   // --- PERBAIKAN --- Logika baru untuk mengeksekusi jadwal otomatis
-  const handleAutoModeCheck = useCallback(() => {
-    if (!deviceData?.control_modes || !deviceData?.relay_schedules || !userData?.device_id) {
-      return;
-    }
+  const handleAutoModeCheck = useCallback(() => {
+    if (!deviceData?.control_modes || !deviceData?.relay_schedules || !userData?.device_id) {
+      return;
+    }
 
-    const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    const controlsToCheck = ['uv_light', 'ultrasonic'];
+    const now = new Date();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const controlsToCheck = ['uv_light', 'ultrasonic'];
 
-    controlsToCheck.forEach(control => {
-      const mode = deviceData.control_modes[control];
-      
-      // Hanya proses jika mode adalah 'auto'
-      if (mode === 'auto') {
-        const schedule = deviceData.relay_schedules[control];
-        const currentState = deviceData.controls?.[control] ?? false;
+    controlsToCheck.forEach(control => {
+      const mode = deviceData.control_modes[control];
+      
+      // Hanya proses jika mode adalah 'auto'
+      if (mode === 'auto') {
+        const schedule = deviceData.relay_schedules[control];
+        const currentState = deviceData.controls?.[control] ?? false;
 
-        if (schedule && schedule.on_time && schedule.off_time) {
-          const { on_time, off_time } = schedule;
-          let expectedState = false;
+        if (schedule && schedule.on_time && schedule.off_time) {
+          const { on_time, off_time } = schedule;
+          let expectedState = false;
 
-          // Cek jika jadwal melewati tengah malam (misal: 22:00 - 05:00)
-          if (on_time > off_time) { 
-            if (currentTime >= on_time || currentTime < off_time) {
-              expectedState = true;
-            }
-          } else { // Jadwal di hari yang sama (misal: 08:00 - 17:00)
-            if (currentTime >= on_time && currentTime < off_time) {
-              expectedState = true;
-            }
-          }
-          
-          // Jika status yang diharapkan berbeda dengan status saat ini, update Firebase
-          if (expectedState !== currentState) {
-            console.log(`Mode Otomatis: Mengubah status ${control} menjadi ${expectedState}`);
-            set(ref(db, `devices/${userData.device_id}/controls/${control}`), expectedState);
-          }
-        }
-      }
-    });
-  }, [deviceData, userData?.device_id]);
+          // Cek jika jadwal melewati tengah malam (misal: 22:00 - 05:00)
+          if (on_time > off_time) { 
+            if (currentTime >= on_time || currentTime < off_time) {
+              expectedState = true;
+            }
+          } else { // Jadwal di hari yang sama (misal: 08:00 - 17:00)
+            if (currentTime >= on_time && currentTime < off_time) {
+              expectedState = true;
+            }
+          }
+          
+          // Jika status yang diharapkan berbeda dengan status saat ini, update Firebase
+          if (expectedState !== currentState) {
+            console.log(`Mode Otomatis: Mengubah status ${control} menjadi ${expectedState}`);
+            set(ref(db, `devices/${userData.device_id}/controls/${control}`), expectedState);
+          }
+        }
+      }
+    });
+  }, [deviceData, userData?.device_id]);
 
   // --- PERBAIKAN --- Menjalankan pengecekan jadwal otomatis secara periodik
-  useEffect(() => {
+  useEffect(() => {
     // Jalankan pengecekan setiap 15 detik. Cukup untuk jadwal berbasis menit.
-    const interval = setInterval(handleAutoModeCheck, 15000); 
-    
-    return () => clearInterval(interval);
-  }, [handleAutoModeCheck]);
+    const interval = setInterval(handleAutoModeCheck, 15000); 
+    
+    return () => clearInterval(interval);
+  }, [handleAutoModeCheck]);
 
 
   if (loading) {
@@ -626,15 +629,15 @@ const DashboardPage = ({ user }) => {
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <div className="relative w-20 h-20">
-            <motion.div 
+            <motion.div 
               className="absolute w-full h-full border-4 border-blue-200 border-t-blue-600 rounded-full"
-          	  animate={{ rotate: 360 }}
-          	  transition={{ loop: Infinity, ease: "linear", duration: 1 }}
+          	  animate={{ rotate: 360 }}
+          	  transition={{ loop: Infinity, ease: "linear", duration: 1 }}
           	/>
-          	<motion.div 
-          	  className="absolute w-full h-full border-4 border-transparent border-t-purple-600 rounded-full"
-          	  animate={{ rotate: -360 }}
-          	  transition={{ loop: Infinity, ease: "linear", duration: 1.5 }}
+          	<motion.div 
+          	  className="absolute w-full h-full border-4 border-transparent border-t-purple-600 rounded-full"
+          	  animate={{ rotate: -360 }}
+          	  transition={{ loop: Infinity, ease: "linear", duration: 1.5 }}
           	/>
         	</div>
         	<p className="mt-6 text-lg font-semibold text-gray-700">Memuat Dashboard...</p>
@@ -651,12 +654,12 @@ const DashboardPage = ({ user }) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <motion.div initial="hidden" animate="visible" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader user={user} />
-        
+        
         <main className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content Area */}
           <div className="space-y-8 lg:col-span-2">
             <StatusCard isOnline={isOnline} />
-            <ControlCard 
+            <ControlCard 
               deviceData={deviceData}
               uvMode={uvMode}
               ultrasonicMode={ultrasonicMode}
@@ -667,13 +670,13 @@ const DashboardPage = ({ user }) => {
 
         	{/* Sidebar */}
         	<div className="space-y-8 lg:col-span-1">
-        	  <ScheduleCard 
-        	    deviceData={deviceData}
-        	    relayScheduleForm={relayScheduleForm}
-        	    setRelayScheduleForm={setRelayScheduleForm}
-        	    handleRelayScheduleSave={handleRelayScheduleSave}
-        	  />
-        	  <WhatsAppSchedulerCard user={user} userData={userData} />
+        	  <ScheduleCard 
+        	    deviceData={deviceData}
+        	    relayScheduleForm={relayScheduleForm}
+        	    setRelayScheduleForm={setRelayScheduleForm}
+        	    handleRelayScheduleSave={handleRelayScheduleSave}
+        	  />
+        	  <WhatsAppSchedulerCard user={user} userData={userData} />
         	</div>
       	</main>
     	</motion.div>
