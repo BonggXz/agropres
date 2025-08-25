@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { ref, onValue, set, get, push, remove, update } from "firebase/database";
 import { auth, db } from '../firebase/config';
@@ -395,7 +395,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
         targetNumber: newSchedule.targetNumber,
         message: newSchedule.message,
         status: 'active',
-        last_sent: null // Tambahkan field untuk mencatat pengiriman terakhir
+        last_sent: null
       });
       setNewSchedule({ date: '', time: '', note: '', targetNumber: userData?.whatsapp_number || '', message: '' });
       Swal.fire({
@@ -442,20 +442,15 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
     }
   };
   
-  // PERBAIKAN: Fungsi pengecekan jadwal WA dengan pencegahan spam
   const checkSchedules = useCallback(async () => {
     if (!schedules || !userData?.notification_apikey) return; 
 
     const now = new Date();
     for (const [id, schedule] of Object.entries(schedules)) {
-      // Hanya proses jadwal aktif yang belum pernah dikirim hari ini
       if (schedule.status === 'active') {
         const scheduleTime = new Date(schedule.datetime);
-        
-        // Periksa apakah jadwal sudah lewat waktunya
         const isTimeToSend = now >= scheduleTime;
-        
-        // Periksa apakah sudah dikirim hari ini
+
         const lastSent = schedule.last_sent ? new Date(schedule.last_sent) : null;
         const isAlreadySentToday = lastSent && 
           lastSent.getDate() === now.getDate() &&
@@ -474,8 +469,6 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
             
             if (responseText.includes("Message sent")) {
               console.log("Notifikasi WhatsApp berhasil dikirim");
-              
-              // Update database dengan timestamp pengiriman
               await update(ref(db, `users/${user.uid}/pestisida_schedules/${id}`), { 
                 last_sent: new Date().toISOString() 
               });
@@ -575,6 +568,85 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   );
 });
 
+// ---------- NEW: PWM TUNING CARD ----------
+const PwmTuningCard = memo(({ 
+  isOnline, 
+  pwmCtl, 
+  feedback, 
+  onFieldChange 
+}) => {
+  const syncedPercent = typeof feedback?.pot_percent === 'number' && feedback.pot_percent === pwmCtl.pot_percent;
+  const syncedFreq    = typeof feedback?.pwm_freq_ctrl_hz === 'number' && feedback.pwm_freq_ctrl_hz === pwmCtl.pwm_freq_ctrl_hz;
+
+  const fmtHz = (v) => v >= 1000 ? `${(v/1000).toFixed(1)} kHz` : `${v} Hz`;
+
+  return (
+    <motion.div custom={2.5} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-full -translate-y-12 translate-x-12 opacity-50"></div>
+      <div className="relative p-8 space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            Tuning PWM (Pot & Frekuensi)
+          </h2>
+          <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {isOnline ? 'ONLINE' : 'OFFLINE'}
+          </span>
+        </div>
+
+        {/* Potensiometer / Duty 0–100% */}
+        <div className="p-6 rounded-2xl border bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg">
+                <FaLightbulb className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Level Potensiometer (duty)</p>
+                <h3 className="text-xl font-bold text-gray-800">{pwmCtl.pot_percent}%</h3>
+              </div>
+            </div>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${syncedPercent ? 'bg-white text-emerald-700 border border-emerald-200' : 'bg-emerald-600 text-white'}`}>
+              {syncedPercent ? 'Tersinkron' : 'Menyinkronkan...'}
+            </span>
+          </div>
+          <input 
+            type="range" min={0} max={100} step={1}
+            value={pwmCtl.pot_percent}
+            onChange={(e)=> onFieldChange('pot_percent', Number(e.target.value))}
+            disabled={!isOnline}
+            className="w-full accent-emerald-600"
+          />
+        </div>
+
+        {/* Frekuensi PWM 1–40 kHz */}
+        <div className="p-6 rounded-2xl border bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg">
+                <BsSoundwave className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Frekuensi PWM</p>
+                <h3 className="text-xl font-bold text-gray-800">{fmtHz(pwmCtl.pwm_freq_ctrl_hz)}</h3>
+              </div>
+            </div>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${syncedFreq ? 'bg-white text-blue-700 border border-blue-200' : 'bg-blue-600 text-white'}`}>
+              {syncedFreq ? 'Tersinkron' : 'Menyinkronkan...'}
+            </span>
+          </div>
+          <input 
+            type="range" min={1000} max={40000} step={500}
+            value={pwmCtl.pwm_freq_ctrl_hz}
+            onChange={(e)=> onFieldChange('pwm_freq_ctrl_hz', Number(e.target.value))}
+            disabled={!isOnline}
+            className="w-full accent-blue-600"
+          />
+          <p className="mt-2 text-xs text-gray-500">Rentang: 1 kHz – 40 kHz (disarankan 15–25 kHz untuk RC yang halus)</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+});
 
 // --- MAIN PAGE COMPONENT ---
 
@@ -586,6 +658,10 @@ const DashboardPage = ({ user }) => {
     uv_light: { on_time: '', off_time: '' }, 
     ultrasonic: { on_time: '', off_time: '' }
   });
+
+  // PWM Control local state
+  const [pwmCtl, setPwmCtl] = useState({ pot_percent: 50, pwm_freq_ctrl_hz: 20000 });
+  const writeTimersRef = useRef({});
 
   useEffect(() => {
     if (!user.uid) return;
@@ -605,9 +681,16 @@ const DashboardPage = ({ user }) => {
               const currentSchedules = {
                 uv_light: { on_time: data.relay_schedules.uv_light?.on_time || '', off_time: data.relay_schedules.uv_light?.off_time || '' },
                 ultrasonic: { on_time: data.relay_schedules.ultrasonic?.on_time || '', off_time: data.relay_schedules.ultrasonic?.off_time || '' },
-              }
+              };
               setRelayScheduleForm(currentSchedules);
             }
+            // Sync initial PWM from controls (priority) or feedback
+            const pot = (data?.controls?.pot_percent ?? data?.feedback?.pot_percent ?? 50);
+            const hz  = (data?.controls?.pwm_freq_ctrl_hz ?? data?.feedback?.pwm_freq_ctrl_hz ?? 20000);
+            setPwmCtl({
+              pot_percent: Math.min(100, Math.max(0, Number(pot))),
+              pwm_freq_ctrl_hz: Math.min(40000, Math.max(1000, Number(hz)))
+            });
             setLoading(false);
           });
           return () => unsubscribe();
@@ -707,6 +790,25 @@ const DashboardPage = ({ user }) => {
     return () => clearInterval(interval);
   }, [handleAutoModeCheck]);
 
+  // Debounced write for PWM fields
+  const onPwmFieldChange = useCallback((key, value) => {
+    setPwmCtl(prev => ({ ...prev, [key]: value }));
+    if (!userData?.device_id) return;
+
+    if (writeTimersRef.current[key]) clearTimeout(writeTimersRef.current[key]);
+    writeTimersRef.current[key] = setTimeout(() => {
+      const path = `devices/${userData.device_id}/controls/${key}`;
+      set(ref(db, path), Number(value)).catch(err => {
+        console.error('Gagal update PWM:', err);
+        Swal.fire({
+          title: 'Update Gagal',
+          text: 'Tidak bisa mengirim nilai ke perangkat. Cek koneksi.',
+          icon: 'error',
+          customClass: { popup: 'rounded-2xl' }
+        });
+      });
+    }, 300);
+  }, [userData]);
 
   if (loading) {
     return (
@@ -730,7 +832,9 @@ const DashboardPage = ({ user }) => {
     );
   }
 
-  const isOnline = deviceData?.status?.is_online && (Date.now() / 1000 - deviceData.status.last_seen < 120);
+  // FIXED: gunakan milidetik untuk last_seen
+  const lastSeenMs = deviceData?.status?.last_seen || 0;
+  const isOnline = deviceData?.status?.is_online && (Date.now() - lastSeenMs < 120000);
   const uvMode = deviceData?.control_modes?.uv_light || 'manual';
   const ultrasonicMode = deviceData?.control_modes?.ultrasonic || 'manual';
 
@@ -748,6 +852,12 @@ const DashboardPage = ({ user }) => {
               ultrasonicMode={ultrasonicMode}
               handleModeChange={handleModeChange}
               handleManualToggle={handleManualToggle}
+            />
+            <PwmTuningCard
+              isOnline={isOnline}
+              pwmCtl={pwmCtl}
+              feedback={deviceData?.feedback}
+              onFieldChange={onPwmFieldChange}
             />
           </div>
 
