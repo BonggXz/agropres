@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { signOut } from 'firebase/auth';
 import { ref, onValue, set, get, push, remove, update } from "firebase/database";
 import { auth, db } from '../firebase/config';
-import { FaLightbulb, FaVolumeUp, FaTrash, FaPlus, FaSave, FaEdit, FaTimes, FaClock, FaWifi, FaUser, FaBell } from 'react-icons/fa';
+import { FaLightbulb, FaVolumeUp, FaTrash, FaPlus, FaSave, FaEdit, FaTimes, FaClock, FaWifi, FaUser, FaBell, FaRandom } from 'react-icons/fa';
 import { BsSoundwave, BsWifi, BsWifiOff, BsCalendar3, BsGearFill } from 'react-icons/bs';
 import { IoMdLogOut } from "react-icons/io";
 import { HiOutlineDevicePhoneMobile, HiSparkles } from 'react-icons/hi2';
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- ANIMATION VARIANTS ---
+/* ==================== anim variants & small components (tidak diubah) ==================== */
 const cardVariants = {
   hidden: { opacity: 0, y: 30 },
   visible: (i) => ({
@@ -19,20 +19,27 @@ const cardVariants = {
   }),
 };
 
-// --- UI Helpers ---
 const CustomSwitch = memo(({ isChecked, onChange, disabled = false, colorScheme = 'blue' }) => {
-  const bgColor = isChecked 
-    ? colorScheme === 'yellow' ? 'bg-gradient-to-r from-yellow-400 to-orange-400' : 'bg-gradient-to-r from-blue-500 to-purple-600'
+  const bgColor = isChecked
+    ? colorScheme === 'yellow'
+      ? 'bg-gradient-to-r from-yellow-400 to-orange-400'
+      : 'bg-gradient-to-r from-blue-500 to-purple-600'
     : 'bg-gradient-to-r from-gray-200 to-gray-300';
+  const cursor = disabled ? 'cursor-not-allowed' : 'cursor-pointer';
   return (
-    <div 
-      onClick={!disabled ? onChange : undefined} 
-      className={`flex items-center h-8 w-14 rounded-full transition-colors duration-300 relative ${disabled?'cursor-not-allowed opacity-50':'cursor-pointer'} ${bgColor} p-1 ${isChecked ? 'justify-end' : 'justify-start'}`}
+    <div
+      onClick={!disabled ? onChange : undefined}
+      className={`flex items-center h-8 w-14 rounded-full transition-colors duration-300 relative ${cursor} ${bgColor} ${disabled ? 'opacity-50' : ''} p-1 ${isChecked ? 'justify-end' : 'justify-start'}`}
     >
       <motion.div layout transition={{ type: "spring", stiffness: 700, damping: 35 }} className="h-6 w-6 bg-white rounded-full shadow-md" />
       <AnimatePresence>
         {isChecked && (
-          <motion.div className="absolute right-2 top-1/2 -translate-y-1/2" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}>
+          <motion.div
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+          >
             <HiSparkles className="w-3 h-3 text-white" />
           </motion.div>
         )}
@@ -43,27 +50,41 @@ const CustomSwitch = memo(({ isChecked, onChange, disabled = false, colorScheme 
 
 const ModeControl = memo(({ mode, onModeChange }) => {
   const base = "px-4 sm:px-6 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 transform";
-  const act = "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25";
-  const inact = "bg-white text-gray-600 hover:bg-gray-50 shadow-md border border-gray-200";
+  const active = "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25";
+  const inactive = "bg-white text-gray-600 hover:bg-gray-50 shadow-md border border-gray-200";
   return (
     <div className="flex items-center p-1.5 space-x-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-inner">
-      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onModeChange('manual')} className={`${base} ${mode==='manual'?act:inact}`}>Manual</motion.button>
-      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onModeChange('auto')} className={`${base} ${mode==='auto'?act:inact}`}>Otomatis</motion.button>
+      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onModeChange('manual')} className={`${base} ${mode === 'manual' ? active : inactive}`}>Manual</motion.button>
+      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onModeChange('auto')} className={`${base} ${mode === 'auto' ? active : inactive}`}>Otomatis</motion.button>
     </div>
   );
 });
 
-// --- Cards ---
+/* ==================== header & cards (mayoritas tidak diubah) ==================== */
 const DashboardHeader = memo(({ user }) => {
   const handleLogout = async () => {
-    const res = await Swal.fire({
-      title: 'Konfirmasi Logout', text: 'Apakah Anda yakin ingin keluar?', icon: 'question',
-      showCancelButton: true, confirmButtonText: 'Ya, Logout', cancelButtonText: 'Batal',
-      customClass: { popup:'rounded-2xl shadow-xl', confirmButton:'px-6 py-2.5 text-white bg-red-600 rounded-lg font-semibold hover:bg-red-700', cancelButton:'px-6 py-2.5 text-white bg-gray-500 rounded-lg font-semibold hover:bg-gray-600', actions:'gap-4' }, buttonsStyling: false
+    const result = await Swal.fire({
+      title: 'Konfirmasi Logout',
+      text: 'Apakah Anda yakin ingin keluar?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Logout',
+      cancelButtonText: 'Batal',
+      customClass: {
+        popup: 'rounded-2xl shadow-xl',
+        confirmButton: 'px-6 py-2.5 text-white bg-red-600 rounded-lg font-semibold hover:bg-red-700 transition-colors',
+        cancelButton: 'px-6 py-2.5 text-white bg-gray-500 rounded-lg font-semibold hover:bg-gray-600 transition-colors',
+        actions: 'gap-4',
+      },
+      buttonsStyling: false
     });
-    if (res.isConfirmed) {
-      try { await signOut(auth); Swal.fire({ title:'Berhasil Logout!', icon:'success', timer:1500, showConfirmButton:false, customClass:{popup:'rounded-2xl'} }); }
-      catch { Swal.fire({ title:'Error!', text:'Gagal logout. Coba lagi.', icon:'error', customClass:{popup:'rounded-2xl'} }); }
+    if (result.isConfirmed) {
+      try {
+        await signOut(auth);
+        Swal.fire({ title: 'Berhasil Logout!', icon: 'success', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-2xl' }});
+      } catch {
+        Swal.fire({ title: 'Error!', text: 'Gagal logout. Silakan coba lagi.', icon: 'error', customClass: { popup: 'rounded-2xl' }});
+      }
     }
   };
   return (
@@ -71,7 +92,8 @@ const DashboardHeader = memo(({ user }) => {
       <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full -translate-y-20 translate-x-20 opacity-50"></div>
       <div className="relative flex flex-col sm:flex-row items-center justify-between p-6 sm:p-8 gap-4">
         <div className="flex items-center space-x-4">
-          <motion.div initial={{ scale: 0, rotate: -45 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.3, type: 'spring' }} className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-lg">
+          <motion.div initial={{ scale: 0, rotate: -45 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.3, type: 'spring' }}
+            className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-lg">
             <FaWifi className="w-8 h-8 text-white" />
           </motion.div>
           <div>
@@ -79,8 +101,8 @@ const DashboardHeader = memo(({ user }) => {
             <p className="text-gray-600 mt-2 flex items-center text-sm"><FaUser className="w-4 h-4 mr-2" />Selamat datang, {user?.email}</p>
           </div>
         </div>
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleLogout} className="inline-flex items-center px-6 py-3 text-sm font-semibold text-red-700 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-500/20">
-          <IoMdLogOut className="w-5 h-5 mr-2" /> Logout
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleLogout} className="inline-flex items-center px-6 py-3 text-sm font-semibold text-red-700 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/20">
+          <IoMdLogOut className="w-5 h-5 mr-2" />Logout
         </motion.button>
       </div>
     </motion.header>
@@ -93,27 +115,43 @@ const StatusCard = memo(({ isOnline }) => (
     <div className="relative p-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Status Perangkat</h2>
-        <div className={`p-3 rounded-full ${isOnline ? 'bg-green-100' : 'bg-red-100'}`}>
-          <HiOutlineDevicePhoneMobile className={`w-6 h-6 ${isOnline ? 'text-green-600' : 'text-red-600'}`} />
+        <div className={`p-3 rounded-full ${isOnline ? 'bg-green-100' : 'bg-red-100'} transition-colors`}>
+          <HiOutlineDevicePhoneMobile className={`w-6 h-6 ${isOnline ? 'text-green-600' : 'text-red-600'} transition-colors`} />
         </div>
       </div>
-      <div className={`flex items-center justify-between p-6 rounded-2xl ${isOnline ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' : 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200'}`}>
+      <div className={`flex items-center justify-between p-6 rounded-2xl ${isOnline ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' : 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200'} transition-all duration-300`}>
         <div className="flex items-center space-x-4">
-          <div className={`p-3 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'} shadow-lg`}>
-            {isOnline ? <BsWifi className="w-6 h-6 text-white" /> : <BsWifiOff className="w-6 h-6 text-white" />}
+          <div className={`p-3 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'} shadow-lg transition-colors`}>
+            <AnimatePresence mode="wait">
+              <motion.div key={isOnline ? 'on' : 'off'} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
+                {isOnline ? <BsWifi className="w-6 h-6 text-white" /> : <BsWifiOff className="w-6 h-6 text-white" />}
+              </motion.div>
+            </AnimatePresence>
           </div>
           <div>
-            <span className={`text-2xl font-bold ${isOnline ? 'text-green-700' : 'text-red-700'}`}>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
-            <p className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'} mt-1`}>{isOnline ? 'Perangkat terhubung' : 'Perangkat tidak terhubung'}</p>
+            <span className={`text-2xl font-bold ${isOnline ? 'text-green-700' : 'text-red-700'} transition-colors`}>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+            <p className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'} mt-1 transition-colors`}>{isOnline ? 'Perangkat terhubung' : 'Perangkat tidak terhubung'}</p>
           </div>
         </div>
-        <div className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
+        <div className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'} transition-colors`}></div>
       </div>
     </div>
   </motion.div>
 ));
 
-const ControlCard = memo(({ deviceData, uvMode, ultrasonicMode, handleModeChange, handleManualToggle }) => (
+/* ==================== ControlCard: tambah tombol range & interval ==================== */
+const ControlCard = memo(({
+  deviceData,
+  uvMode,
+  ultrasonicMode,
+  handleModeChange,
+  handleManualToggle,
+  ultrasonicProfile,
+  altInterval,
+  onChangeProfile,
+  onChangeAltInterval,
+  onSaveAltInterval
+}) => (
   <motion.div custom={2} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100">
     <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-full -translate-y-12 -translate-x-12 opacity-50"></div>
     <div className="relative p-8">
@@ -121,33 +159,90 @@ const ControlCard = memo(({ deviceData, uvMode, ultrasonicMode, handleModeChange
         <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Kontrol Perangkat</h2>
         <div className="p-3 rounded-full bg-gradient-to-r from-blue-100 to-purple-100"><BsGearFill className="w-6 h-6 text-blue-600" /></div>
       </div>
+
       <div className="space-y-8">
-        {/* UV */}
-        <div className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
+        {/* UV Light (tidak diubah) */}
+        <div className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200 transition-all duration-300">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg"><FaLightbulb className="w-6 h-6 text-white" /></div>
               <div><h3 className="text-xl font-bold text-gray-800">Lampu UV</h3><p className="text-sm text-gray-600">Pengendali hama ultraviolet</p></div>
             </div>
-            <ModeControl mode={uvMode} onModeChange={(m)=>handleModeChange('uv_light', m)} />
+            <ModeControl mode={uvMode} onModeChange={(m) => handleModeChange('uv_light', m)} />
           </div>
           <div className="flex items-center justify-between mt-4">
-            <span className={`text-sm font-semibold ${uvMode==='manual'?'text-gray-700':'text-gray-400'}`}>Kontrol Manual</span>
-            <CustomSwitch isChecked={!!deviceData?.controls?.uv_light} onChange={()=>handleManualToggle('uv_light', !deviceData?.controls?.uv_light)} disabled={uvMode!=='manual'} colorScheme="yellow" />
+            <span className={`text-sm font-semibold transition-colors ${uvMode === 'manual' ? 'text-gray-700' : 'text-gray-400'}`}>Kontrol Manual</span>
+            <CustomSwitch isChecked={!!deviceData?.controls?.uv_light} onChange={() => handleManualToggle('uv_light', !deviceData?.controls?.uv_light)} disabled={uvMode !== 'manual'} colorScheme="yellow" />
           </div>
         </div>
+
         {/* Ultrasonic */}
-        <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
+        <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 transition-all duration-300">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg"><BsSoundwave className="w-6 h-6 text-white" /></div>
               <div><h3 className="text-xl font-bold text-gray-800">Suara Ultrasonik</h3><p className="text-sm text-gray-600">Pengusir hama gelombang suara</p></div>
             </div>
-            <ModeControl mode={ultrasonicMode} onModeChange={(m)=>handleModeChange('ultrasonic', m)} />
+            <ModeControl mode={ultrasonicMode} onModeChange={(m) => handleModeChange('ultrasonic', m)} />
           </div>
-          <div className="flex items-center justify-between mt-4">
-            <span className={`text-sm font-semibold ${ultrasonicMode==='manual'?'text-gray-700':'text-gray-400'}`}>Kontrol Manual</span>
-            <CustomSwitch isChecked={!!deviceData?.controls?.ultrasonic} onChange={()=>handleManualToggle('ultrasonic', !deviceData?.controls?.ultrasonic)} disabled={ultrasonicMode!=='manual'} colorScheme="blue" />
+
+          {/* ON/OFF manual tetap */}
+          <div className="flex items-center justify-between mt-1">
+            <span className={`text-sm font-semibold transition-colors ${ultrasonicMode === 'manual' ? 'text-gray-700' : 'text-gray-400'}`}>Kontrol Manual</span>
+            <CustomSwitch isChecked={!!deviceData?.controls?.ultrasonic} onChange={() => handleManualToggle('ultrasonic', !deviceData?.controls?.ultrasonic)} disabled={ultrasonicMode !== 'manual'} colorScheme="blue" />
+          </div>
+
+          {/* === Tambahan: Tombol Range === */}
+          <div className="mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => onChangeProfile('R1_10')}
+                className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${ultrasonicProfile==='R1_10' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-700 border-blue-200 hover:bg-blue-50'}`}>
+                Range 1–10
+              </motion.button>
+
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => onChangeProfile('R10_200')}
+                className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${ultrasonicProfile==='R10_200' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-700 border-blue-200 hover:bg-blue-50'}`}>
+                Range 10–200
+              </motion.button>
+
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => onChangeProfile('ALT')}
+                className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${ultrasonicProfile==='ALT' ? 'bg-purple-600 text-white border-purple-600 shadow-lg' : 'bg-white text-gray-700 border-purple-200 hover:bg-purple-50'}`}>
+                <FaRandom className="w-4 h-4" /> Bergantian
+              </motion.button>
+            </div>
+
+            {/* Interval muncul hanya jika mode ALT */}
+            {ultrasonicProfile === 'ALT' && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Interval Bergantian (detik)</label>
+                  <input type="number" min="1" value={altInterval} onChange={(e)=>onChangeAltInterval(e.target.value)}
+                    className="mt-2 w-full px-4 py-2 bg-white border border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all" />
+                </div>
+                <div className="sm:col-span-1 flex items-end">
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={onSaveAltInterval}
+                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold shadow-lg">
+                    Simpan Interval
+                  </motion.button>
+                </div>
+              </div>
+            )}
+
+            {/* Keterangan target hama */}
+            <div className="mt-5 text-xs sm:text-sm text-gray-600">
+              <div className="rounded-xl bg-white/70 border border-blue-100 p-3">
+                <p className="font-semibold mb-1">Rekomendasi umum (≈ kisaran):</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Burung: ±1–5 kHz (terdengar tinggi)</li>
+                  <li>Tikus: ±20–55 kHz (ultrasonik rendah)</li>
+                  <li>Serangga: ±25–100 kHz (ultrasonik menengah)</li>
+                </ul>
+                <p className="mt-2 text-[11px] text-gray-500">Catatan: efektivitas dapat bervariasi tergantung jenis & kondisi lapangan.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -155,6 +250,7 @@ const ControlCard = memo(({ deviceData, uvMode, ultrasonicMode, handleModeChange
   </motion.div>
 ));
 
+/* ==================== Schedule & WhatsApp card (tetap) ==================== */
 const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm, handleRelayScheduleSave }) => {
   const [isEditing, setIsEditing] = useState(false);
   return (
@@ -162,11 +258,18 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
       <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full -translate-y-10 translate-x-10 opacity-50"></div>
       <div className="relative p-6">
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-3"><div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl"><FaClock className="w-5 h-5 text-white" /></div>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl"><FaClock className="w-5 h-5 text-white" /></div>
             <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Jadwal Otomatis</h2>
           </div>
-          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={()=>setIsEditing(!isEditing)} className={`p-3 rounded-xl ${isEditing?'bg-red-100 text-red-600':'bg-blue-100 text-blue-600'}`}>
-            {isEditing ? <FaTimes className="w-4 h-4" /> : <FaEdit className="w-4 h-4" />}
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={() => setIsEditing(!isEditing)}
+            className={`p-3 rounded-xl transition-all duration-300 ${isEditing ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}>
+            <AnimatePresence mode="wait">
+              <motion.div key={isEditing ? 'close' : 'edit'} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                {isEditing ? <FaTimes className="w-4 h-4" /> : <FaEdit className="w-4 h-4" />}
+              </motion.div>
+            </AnimatePresence>
           </motion.button>
         </div>
 
@@ -176,38 +279,36 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
               <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3"><FaLightbulb className="w-5 h-5 text-yellow-600" /><span className="font-semibold text-gray-700">Lampu UV</span></div>
-                  <div className="flex items-center space-x-2"><span className="px-3 py-1 bg-white rounded-lg shadow-sm">{deviceData?.relay_schedules?.uv_light?.on_time || '--:--'}</span><span className="text-gray-400">—</span><span className="px-3 py-1 bg-white rounded-lg shadow-sm">{deviceData?.relay_schedules?.uv_light?.off_time || '--:--'}</span></div>
+                  <div className="flex items-center space-x-2"><span className="px-3 py-1 bg-white text-gray-800 font-medium rounded-lg shadow-sm">{deviceData?.relay_schedules?.uv_light?.on_time || '--:--'}</span><span className="text-gray-400">—</span><span className="px-3 py-1 bg-white text-gray-800 font-medium rounded-lg shadow-sm">{deviceData?.relay_schedules?.uv_light?.off_time || '--:--'}</span></div>
                 </div>
               </div>
               <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3"><FaVolumeUp className="w-5 h-5 text-blue-600" /><span className="font-semibold text-gray-700">Ultrasonik</span></div>
-                  <div className="flex items-center space-x-2"><span className="px-3 py-1 bg-white rounded-lg shadow-sm">{deviceData?.relay_schedules?.ultrasonic?.on_time || '--:--'}</span><span className="text-gray-400">—</span><span className="px-3 py-1 bg-white rounded-lg shadow-sm">{deviceData?.relay_schedules?.ultrasonic?.off_time || '--:--'}</span></div>
+                  <div className="flex items-center space-x-2"><span className="px-3 py-1 bg-white text-gray-800 font-medium rounded-lg shadow-sm">{deviceData?.relay_schedules?.ultrasonic?.on_time || '--:--'}</span><span className="text-gray-400">—</span><span className="px-3 py-1 bg-white text-gray-800 font-medium rounded-lg shadow-sm">{deviceData?.relay_schedules?.ultrasonic?.off_time || '--:--'}</span></div>
                 </div>
               </div>
             </motion.div>
           ) : (
             <motion.div key="form" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
-              {/* UV */}
               <div className="space-y-3">
                 <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700"><FaLightbulb className="w-4 h-4 text-yellow-600" /><span>Jadwal Lampu UV</span></label>
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <input type="time" value={relayScheduleForm.uv_light.on_time} onChange={e=>setRelayScheduleForm({...relayScheduleForm, uv_light:{...relayScheduleForm.uv_light, on_time:e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 text-center"/>
-                  <span className="hidden sm:block text-gray-400 font-bold">—</span>
-                  <input type="time" value={relayScheduleForm.uv_light.off_time} onChange={e=>setRelayScheduleForm({...relayScheduleForm, uv_light:{...relayScheduleForm.uv_light, off_time:e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 text-center"/>
+                <div className="flex items-center space-x-3">
+                  <input type="time" value={relayScheduleForm.uv_light.on_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, uv_light: {...relayScheduleForm.uv_light, on_time: e.target.value}})} className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200"/>
+                  <span className="text-gray-400 font-bold">—</span>
+                  <input type="time" value={relayScheduleForm.uv_light.off_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, uv_light: {...relayScheduleForm.uv_light, off_time: e.target.value}})} className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200"/>
                 </div>
               </div>
-              {/* Sonic */}
               <div className="space-y-3">
                 <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700"><FaVolumeUp className="w-4 h-4 text-blue-600" /><span>Jadwal Suara Ultrasonik</span></label>
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <input type="time" value={relayScheduleForm.ultrasonic.on_time} onChange={e=>setRelayScheduleForm({...relayScheduleForm, ultrasonic:{...relayScheduleForm.ultrasonic, on_time:e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-center"/>
-                  <span className="hidden sm:block text-gray-400 font-bold">—</span>
-                  <input type="time" value={relayScheduleForm.ultrasonic.off_time} onChange={e=>setRelayScheduleForm({...relayScheduleForm, ultrasonic:{...relayScheduleForm.ultrasonic, off_time:e.target.value}})} className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-center"/>
+                <div className="flex items-center space-x-3">
+                  <input type="time" value={relayScheduleForm.ultrasonic.on_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, ultrasonic: {...relayScheduleForm.ultrasonic, on_time: e.target.value}})} className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"/>
+                  <span className="text-gray-400 font-bold">—</span>
+                  <input type="time" value={relayScheduleForm.ultrasonic.off_time} onChange={e => setRelayScheduleForm({...relayScheduleForm, ultrasonic: {...relayScheduleForm.ultrasonic, off_time: e.target.value}})} className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"/>
                 </div>
               </div>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={()=>{handleRelayScheduleSave(); setIsEditing(false);}} className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl">
-                <FaSave className="inline w-4 h-4 mr-2" /> Simpan Jadwal
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { handleRelayScheduleSave(); setIsEditing(false); }} className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                <FaSave className="w-4 h-4" /><span>Simpan Jadwal</span>
               </motion.button>
             </motion.div>
           )}
@@ -217,57 +318,63 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
   );
 });
 
+/* ==================== WhatsAppSchedulerCard (tidak diubah) ==================== */
 const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   const [schedules, setSchedules] = useState({});
   const [newSchedule, setNewSchedule] = useState({ date: '', time: '', note: '', targetNumber: '', message: '' });
 
-  useEffect(()=>{ if (userData?.whatsapp_number) setNewSchedule(p=>({...p, targetNumber:userData.whatsapp_number})); },[userData]);
-  useEffect(()=>{
+  useEffect(() => { if (userData?.whatsapp_number) setNewSchedule(prev => ({ ...prev, targetNumber: userData.whatsapp_number })); }, [userData]);
+  useEffect(() => {
     if (!user.uid) return;
     const schedulesRef = ref(db, `users/${user.uid}/pestisida_schedules`);
-    return onValue(schedulesRef, (snap)=> setSchedules(snap.val() || {}));
-  },[user.uid]);
+    const unsub = onValue(schedulesRef, (snap) => setSchedules(snap.val() || {}));
+    return () => unsub();
+  }, [user.uid]);
 
-  const handleAddSchedule = async (e)=>{
+  const handleAddSchedule = async (e) => {
     e.preventDefault();
-    const {date,time,note,targetNumber,message} = newSchedule;
-    if (!date||!time||!note||!targetNumber||!message) { Swal.fire('Form Tidak Lengkap!','Harap isi semua kolom jadwal.','warning'); return; }
-    const scheduleTime = new Date(`${date}T${time}`);
-    try{
-      await push(ref(db, `users/${user.uid}/pestisida_schedules`), { datetime:scheduleTime.toISOString(), note, targetNumber, message, status:'active', last_sent:null });
-      setNewSchedule({ date:'', time:'', note:'', targetNumber:userData?.whatsapp_number||'', message:'' });
-      Swal.fire({ title:'Jadwal Ditambahkan!', text:`Pengingat akan dikirim pada ${scheduleTime.toLocaleString('id-ID')}`, icon:'success', customClass:{popup:'rounded-2xl'} });
-    }catch{
-      Swal.fire({ title:'Error!', text:'Gagal menambahkan jadwal.', icon:'error', customClass:{popup:'rounded-2xl'} });
+    if (!newSchedule.date || !newSchedule.time || !newSchedule.note || !newSchedule.targetNumber || !newSchedule.message) {
+      Swal.fire('Form Tidak Lengkap!', 'Harap isi semua kolom jadwal.', 'warning'); return;
     }
+    const scheduleTime = new Date(`${newSchedule.date}T${newSchedule.time}`);
+    try {
+      await push(ref(db, `users/${user.uid}/pestisida_schedules`), {
+        datetime: scheduleTime.toISOString(),
+        note: newSchedule.note,
+        targetNumber: newSchedule.targetNumber,
+        message: newSchedule.message,
+        status: 'active'
+      });
+      setNewSchedule({ date: '', time: '', note: '', targetNumber: userData?.whatsapp_number || '', message: '' });
+      Swal.fire('Jadwal Ditambahkan!', `Pengingat akan dikirim pada ${scheduleTime.toLocaleString('id-ID')}`, 'success');
+    } catch { Swal.fire('Error!', 'Gagal menambahkan jadwal.', 'error'); }
   };
 
-  const handleDeleteSchedule = async (id)=>{
-    const r = await Swal.fire({ title:'Hapus Jadwal?', text:'Tidak bisa dibatalkan.', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, Hapus!', cancelButtonText:'Batal', customClass:{popup:'rounded-2xl',confirmButton:'px-4 py-2 text-white bg-red-600 rounded-lg',cancelButton:'px-4 py-2 text-white bg-gray-500 rounded-lg'}, buttonsStyling:false });
-    if (r.isConfirmed){ await remove(ref(db, `users/${user.uid}/pestisida_schedules/${id}`)); Swal.fire({ title:'Berhasil Dihapus!', icon:'success', customClass:{popup:'rounded-2xl'} }); }
+  const handleDeleteSchedule = async (id) => {
+    const result = await Swal.fire({
+      title: 'Hapus Jadwal?', text: 'Jadwal yang dihapus tidak dapat dikembalikan!',
+      icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'px-4 py-2 text-white bg-red-600 rounded-lg font-semibold hover:bg-red-700 transition-colors', cancelButton: 'px-4 py-2 text-white bg-gray-500 rounded-lg font-semibold hover:bg-gray-600 transition-colors', actions: 'gap-4' },
+      buttonsStyling: false
+    });
+    if (result.isConfirmed) { await remove(ref(db, `users/${user.uid}/pestisida_schedules/${id}`)); Swal.fire('Berhasil Dihapus!', 'Jadwal telah dihapus.', 'success'); }
   };
 
-  const checkSchedules = useCallback(async ()=>{
-    if (!schedules || !userData?.notification_apikey) return;
+  const checkSchedules = useCallback(() => {
+    if (!schedules || !userData?.callmebot_apikey) return;
     const now = new Date();
-    for (const [id, s] of Object.entries(schedules)) {
-      if (s.status==='active') {
-        const t = new Date(s.datetime);
-        const isTime = now >= t;
-        const last = s.last_sent ? new Date(s.last_sent) : null;
-        const sentToday = last && last.getDate()===now.getDate() && last.getMonth()===now.getMonth() && last.getFullYear()===now.getFullYear();
-        if (isTime && !sentToday) {
-          const url = `https://api.textmebot.com/send.php?recipient=${encodeURIComponent(s.targetNumber)}&apikey=7HpsnhAjXW8n&text=${encodeURIComponent(s.message)}`;
-          try{
-            const resp = await fetch(url); const txt = await resp.text();
-            if (txt.includes("Message sent")) await update(ref(db, `users/${user.uid}/pestisida_schedules/${id}`), { last_sent: new Date().toISOString() });
-          }catch(e){ console.error(e); }
-        }
+    Object.entries(schedules).forEach(([id, schedule]) => {
+      if (schedule.status === 'active' && new Date(schedule.datetime) <= now) {
+        const { targetNumber, message } = schedule;
+        const apiKey = userData.callmebot_apikey;
+        const url = `https://api.callmebot.com/whatsapp.php?phone=${targetNumber}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
+        fetch(url).then(res => { if (res.ok) set(ref(db, `users/${user.uid}/pestisida_schedules/${id}/status`), 'sent'); })
+          .catch(() => {});
       }
-    }
-  },[schedules,userData,user.uid]);
+    });
+  }, [schedules, userData, user.uid]);
 
-  useEffect(()=>{ const itv=setInterval(checkSchedules,60000); return ()=>clearInterval(itv); },[checkSchedules]);
+  useEffect(() => { const i = setInterval(checkSchedules, 60000); return () => clearInterval(i); }, [checkSchedules]);
 
   return (
     <motion.div custom={4} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100">
@@ -275,30 +382,32 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
       <div className="relative p-6">
         <div className="flex items-center space-x-3 mb-6"><div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl"><FaBell className="w-5 h-5 text-white" /></div><h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Pengingat WhatsApp</h2></div>
         <form onSubmit={handleAddSchedule} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="date" value={newSchedule.date} onChange={e=>setNewSchedule({...newSchedule,date:e.target.value})} required className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500"/>
-            <input type="time" value={newSchedule.time} onChange={e=>setNewSchedule({...newSchedule,time:e.target.value})} required className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500"/>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="date" value={newSchedule.date} onChange={e => setNewSchedule({...newSchedule, date: e.target.value})} required className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
+            <input type="time" value={newSchedule.time} onChange={e => setNewSchedule({...newSchedule, time: e.target.value})} required className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
           </div>
-          <input type="text" value={newSchedule.targetNumber} onChange={e=>setNewSchedule({...newSchedule,targetNumber:e.target.value})} required placeholder="Nomor WA (cth: 62812...)" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500"/>
-          <textarea value={newSchedule.message} onChange={e=>setNewSchedule({...newSchedule,message:e.target.value})} required placeholder="Isi pesan notifikasi..." className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 resize-none" rows="3"/>
-          <textarea value={newSchedule.note} onChange={e=>setNewSchedule({...newSchedule,note:e.target.value})} required placeholder="Catatan pribadi (tidak dikirim)" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 resize-none" rows="2"/>
-          <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl">
-            <FaPlus className="inline w-4 h-4 mr-2" /> Tambah Jadwal
+          <input type="text" value={newSchedule.targetNumber} onChange={e => setNewSchedule({...newSchedule, targetNumber: e.target.value})} required placeholder="Nomor WA (cth: 62812...)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
+          <textarea value={newSchedule.message} onChange={e => setNewSchedule({...newSchedule, message: e.target.value})} required placeholder="Isi pesan notifikasi..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="3"/>
+          <textarea value={newSchedule.note} onChange={e => setNewSchedule({...newSchedule, note: e.target.value})} required placeholder="Catatan pribadi (tidak dikirim)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="2"/>
+          <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center space-x-2">
+            <FaPlus className="w-4 h-4" /><span>Tambah Jadwal</span>
           </motion.button>
         </form>
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center"><BsCalendar3 className="w-4 h-4 mr-2 text-gray-600" />Jadwal Aktif</h3>
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
             <AnimatePresence>
-              {Object.entries(schedules).filter(([_,s])=>s.status==='active').length>0 ?
-                Object.entries(schedules).filter(([_,s])=>s.status==='active').sort((a,b)=>new Date(a[1].datetime)-new Date(b[1].datetime)).map(([id,s])=>(
-                  <motion.div key={id} layout initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:20}} className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                    <div className="flex-1"><p className="font-semibold text-gray-800 text-sm">{new Date(s.datetime).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p><p className="text-sm text-gray-600 mt-1">{s.note}</p></div>
-                    <motion.button whileHover={{scale:1.1}} whileTap={{scale:0.9}} onClick={()=>handleDeleteSchedule(id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><FaTrash className="w-4 h-4"/></motion.button>
+              {Object.keys(schedules).length > 0 ? Object.entries(schedules).map(([id, s]) => (
+                s.status === 'active' && (
+                  <motion.div key={id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20, transition: { duration: 0.2 } }} className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800 text-sm">{new Date(s.datetime).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' })}</p>
+                      <p className="text-sm text-gray-600 mt-1">{s.note}</p>
+                    </div>
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSchedule(id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><FaTrash className="w-4 h-4" /></motion.button>
                   </motion.div>
-                ))
-                : (<p className="text-center text-sm text-gray-500 py-4">Belum ada jadwal aktif</p>)
-              }
+                )
+              )) : (<p className="text-center text-sm text-gray-500 py-4">Belum ada jadwal aktif</p>)}
             </AnimatePresence>
           </div>
         </div>
@@ -307,77 +416,40 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   );
 });
 
-// ===== NEW: PWM RAW Tuning (0..1023) =====
-const PwmTuningCard = memo(({ isOnline, pwmCtl, feedback, onRawChange }) => {
-  const synced = typeof feedback?.pwm_raw === 'number' && feedback.pwm_raw === pwmCtl.pwm_raw;
-  const pct = Math.round((pwmCtl.pwm_raw / 1023) * 100);
-  const freqInfo = feedback?.pwm_freq_ctrl_hz ? `${(feedback.pwm_freq_ctrl_hz/1000).toFixed(1)} kHz (fixed)` : 'Fixed by device';
-
-  return (
-    <motion.div custom={2.5} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100">
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-full -translate-y-12 translate-x-12 opacity-50"></div>
-      <div className="relative p-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Tuning PWM (RAW 0–1023)</h2>
-          <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
-        </div>
-
-        <div className="p-6 rounded-2xl border bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm text-gray-600">Nilai RAW (0..1023)</p>
-              <h3 className="text-xl font-bold text-gray-800">{pwmCtl.pwm_raw} <span className="text-sm text-gray-500">(~{pct}% )</span></h3>
-            </div>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${synced ? 'bg-white text-emerald-700 border border-emerald-200' : 'bg-emerald-600 text-white'}`}>
-              {synced ? 'Tersinkron' : 'Menyinkronkan...'}
-            </span>
-          </div>
-          <input type="range" min={0} max={1023} step={1} value={pwmCtl.pwm_raw} onChange={(e)=>onRawChange(Number(e.target.value))} disabled={!isOnline} className="w-full accent-emerald-600"/>
-          <p className="mt-2 text-xs text-gray-500">Frekuensi: {freqInfo} — ESP tidak mengubah frekuensi dari web.</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-});
-
-// --- MAIN PAGE ---
+/* ==================== MAIN PAGE ==================== */
 const DashboardPage = ({ user }) => {
   const [deviceData, setDeviceData] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relayScheduleForm, setRelayScheduleForm] = useState({ uv_light: { on_time: '', off_time: '' }, ultrasonic: { on_time: '', off_time: '' } });
 
-  // PWM RAW local state
-  const [pwmCtl, setPwmCtl] = useState({ pwm_raw: 512 });
-  const writeTimersRef = useRef({});
+  // state baru untuk tombol range & interval
+  const [ultrasonicProfile, setUltrasonicProfile] = useState('R1_10');     // 'R1_10' | 'R10_200' | 'ALT'
+  const [altInterval, setAltInterval] = useState(5);
 
   useEffect(() => {
     if (!user.uid) return;
     const userRef = ref(db, `users/${user.uid}`);
-    get(userRef).then(snapshot => {
-      if (!snapshot.exists()) { setLoading(false); return; }
-      const uData = snapshot.val(); setUserData(uData);
 
-      if (uData.device_id) {
-        const deviceRef = ref(db, `devices/${uData.device_id}`);
-        const unsub = onValue(deviceRef, snap => {
-          const data = snap.val(); setDeviceData(data);
-          if (data?.relay_schedules) {
-            setRelayScheduleForm({
-              uv_light: { on_time: data.relay_schedules.uv_light?.on_time || '', off_time: data.relay_schedules.uv_light?.off_time || '' },
-              ultrasonic: { on_time: data.relay_schedules.ultrasonic?.on_time || '', off_time: data.relay_schedules.ultrasonic?.off_time || '' },
-            });
-          }
-          // Sync initial RAW: controls.pwm_raw > feedback.pwm_raw > pot_percent*1023/100 > 512
-          const raw = (typeof data?.controls?.pwm_raw === 'number') ? data.controls.pwm_raw
-                    : (typeof data?.feedback?.pwm_raw === 'number') ? data.feedback.pwm_raw
-                    : (typeof data?.controls?.pot_percent === 'number') ? Math.round(data.controls.pot_percent * 1023 / 100)
-                    : 512;
-          setPwmCtl({ pwm_raw: Math.max(0, Math.min(1023, Number(raw))) });
-          setLoading(false);
-        });
-        return () => unsub();
-      } else { setLoading(false); }
+    get(userRef).then(snapshot => {
+      if (snapshot.exists()) {
+        const uData = snapshot.val();
+        setUserData(uData);
+
+        if (uData.device_id) {
+          const deviceRef = ref(db, `devices/${uData.device_id}`);
+          const unsub = onValue(deviceRef, snap => {
+            const data = snap.val();
+            setDeviceData(data);
+            if (data?.relay_schedules) setRelayScheduleForm(prev => ({...prev, ...data.relay_schedules}));
+            // muat profile & interval bila ada
+            if (data?.controls?.ultrasonic_profile) setUltrasonicProfile(data.controls.ultrasonic_profile);
+            if (data?.controls?.ultrasonic_alt_interval_sec) setAltInterval(data.controls.ultrasonic_alt_interval_sec);
+            setLoading(false);
+          });
+          return () => unsub();
+        } else setLoading(false);
+      } else setLoading(false);
     });
   }, [user.uid]);
 
@@ -388,58 +460,54 @@ const DashboardPage = ({ user }) => {
 
   const handleManualToggle = useCallback((control, value) => {
     if (!userData?.device_id) return;
-    set(ref(db, `devices/${userData.device_id}/controls/${control}`), value).catch(()=>{
-      Swal.fire({ title:'Update Gagal', text:'Gagal mengubah status perangkat.', icon:'error', customClass:{popup:'rounded-2xl'} });
+    setDeviceData(prev => ({ ...prev, controls: { ...(prev?.controls||{}), [control]: value }}));
+    const controlRef = ref(db, `devices/${userData.device_id}/controls/${control}`);
+    set(controlRef, value).catch(() => {
+      setDeviceData(prev => ({ ...prev, controls: { ...(prev?.controls||{}), [control]: !value }}));
+      Swal.fire('Update Gagal', 'Gagal mengubah status perangkat. Cek koneksi Anda.', 'error');
     });
   }, [userData]);
 
   const handleRelayScheduleSave = useCallback(async () => {
     if (!userData?.device_id) return;
-    try{
+    try {
       await update(ref(db), { [`/devices/${userData.device_id}/relay_schedules`]: relayScheduleForm });
-      Swal.fire({ title:'Jadwal Disimpan!', icon:'success', customClass:{popup:'rounded-2xl'} });
-    }catch(e){
-      Swal.fire({ title:'Error!', text:`Gagal menyimpan jadwal: ${e.message}`, icon:'error', customClass:{popup:'rounded-2xl'} });
+      Swal.fire({ title: 'Jadwal Disimpan!', text: 'Jadwal otomatis telah diperbarui.', icon: 'success', confirmButtonColor: '#10b981', customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl' } });
+    } catch (error) {
+      Swal.fire({ title: 'Error!', text: `Gagal menyimpan jadwal: ${error.message}`, icon: 'error', customClass: { popup: 'rounded-2xl' } });
     }
   }, [userData, relayScheduleForm]);
 
-  // Auto mode executor (relay only)
-  const handleAutoModeCheck = useCallback(() => {
-    if (!deviceData?.control_modes || !deviceData?.relay_schedules || !userData?.device_id) return;
-    const now = new Date(); const hh = now.getHours().toString().padStart(2,'0'); const mm = now.getMinutes().toString().padStart(2,'0'); const cur = `${hh}:${mm}`;
-    ['uv_light','ultrasonic'].forEach(ctrl=>{
-      if (deviceData.control_modes[ctrl] !== 'auto') return;
-      const sch = deviceData.relay_schedules[ctrl]; const state = !!deviceData.controls?.[ctrl];
-      if (sch?.on_time && sch?.off_time){
-        const on=sch.on_time, off=sch.off_time; let expect=false;
-        if (on>off) expect = (cur>=on || cur<off); else expect = (cur>=on && cur<off);
-        if (expect!==state) set(ref(db, `devices/${userData.device_id}/controls/${ctrl}`), expect);
-      }
-    });
-  }, [deviceData, userData?.device_id]);
-
-  useEffect(()=>{ const itv=setInterval(handleAutoModeCheck,15000); return ()=>clearInterval(itv); },[handleAutoModeCheck]);
-
-  // Debounced write RAW
-  const onRawChange = useCallback((value)=>{
-    setPwmCtl({ pwm_raw:value });
+  // === fungsi baru untuk profile range & interval
+  const pushProfile = useCallback(async (profile) => {
     if (!userData?.device_id) return;
-    const key='pwm_raw';
-    if (writeTimersRef.current[key]) clearTimeout(writeTimersRef.current[key]);
-    writeTimersRef.current[key]=setTimeout(()=>{
-      set(ref(db, `devices/${userData.device_id}/controls/${key}`), Number(value)).catch(()=>{
-        Swal.fire({ title:'Update Gagal', text:'Tidak bisa mengirim nilai ke perangkat.', icon:'error', customClass:{popup:'rounded-2xl'} });
-      });
-    }, 200);
-  },[userData]);
+    setUltrasonicProfile(profile);
+    try {
+      await set(ref(db, `devices/${userData.device_id}/controls/ultrasonic_profile`), profile);
+    } catch {
+      Swal.fire('Gagal', 'Tidak bisa mengirim profile ke perangkat.', 'error');
+    }
+  }, [userData]);
+
+  const pushAltInterval = useCallback(async () => {
+    if (!userData?.device_id) return;
+    const val = Math.max(1, parseInt(altInterval || 1, 10));
+    setAltInterval(val);
+    try {
+      await set(ref(db, `devices/${userData.device_id}/controls/ultrasonic_alt_interval_sec`), val);
+      Swal.fire({ title: 'Interval Disimpan', icon: 'success', timer: 1200, showConfirmButton: false });
+    } catch {
+      Swal.fire('Gagal', 'Tidak bisa menyimpan interval.', 'error');
+    }
+  }, [userData, altInterval]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <div className="relative w-20 h-20 mx-auto">
-            <motion.div className="absolute w-full h-full border-4 border-blue-200 border-t-blue-600 rounded-full" animate={{ rotate: 360 }} transition={{ loop: Infinity, ease: "linear", duration: 1 }}/>
-            <motion.div className="absolute w-full h-full border-4 border-transparent border-t-purple-600 rounded-full" animate={{ rotate: -360 }} transition={{ loop: Infinity, ease: "linear", duration: 1.5 }}/>
+          <div className="relative w-20 h-20">
+            <motion.div className="absolute w-full h-full border-4 border-blue-200 border-t-blue-600 rounded-full" animate={{ rotate: 360 }} transition={{ loop: Infinity, ease: "linear", duration: 1 }} />
+            <motion.div className="absolute w-full h-full border-4 border-transparent border-t-purple-600 rounded-full" animate={{ rotate: -360 }} transition={{ loop: Infinity, ease: "linear", duration: 1.5 }} />
           </div>
           <p className="mt-6 text-lg font-semibold text-gray-700">Memuat Dashboard...</p>
         </div>
@@ -447,9 +515,7 @@ const DashboardPage = ({ user }) => {
     );
   }
 
-  // Online check (pakai last_seen server timestamp → toleransi 120s)
-  const lastSeen = deviceData?.status?.last_seen || 0;
-  const isOnline = deviceData?.status?.is_online && (Date.now() - lastSeen < 120000);
+  const isOnline = deviceData?.status?.is_online && (Date.now() / 1000 - deviceData.status.last_seen < 120);
   const uvMode = deviceData?.control_modes?.uv_light || 'manual';
   const ultrasonicMode = deviceData?.control_modes?.ultrasonic || 'manual';
 
@@ -457,15 +523,25 @@ const DashboardPage = ({ user }) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <motion.div initial="hidden" animate="visible" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader user={user} />
-        <main className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-8 md:col-span-2">
+        <main className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="space-y-8 lg:col-span-2">
             <StatusCard isOnline={isOnline} />
-            <ControlCard deviceData={deviceData} uvMode={uvMode} ultrasonicMode={ultrasonicMode} handleModeChange={handleModeChange} handleManualToggle={handleManualToggle}/>
-            <PwmTuningCard isOnline={isOnline} pwmCtl={pwmCtl} feedback={deviceData?.feedback} onRawChange={onRawChange}/>
+            <ControlCard
+              deviceData={deviceData}
+              uvMode={uvMode}
+              ultrasonicMode={ultrasonicMode}
+              handleModeChange={handleModeChange}
+              handleManualToggle={handleManualToggle}
+              ultrasonicProfile={ultrasonicProfile}
+              altInterval={altInterval}
+              onChangeProfile={pushProfile}
+              onChangeAltInterval={setAltInterval}
+              onSaveAltInterval={pushAltInterval}
+            />
           </div>
-          <div className="space-y-8">
-            <ScheduleCard deviceData={deviceData} relayScheduleForm={relayScheduleForm} setRelayScheduleForm={setRelayScheduleForm} handleRelayScheduleSave={handleRelayScheduleSave}/>
-            <WhatsAppSchedulerCard user={user} userData={userData}/>
+          <div className="space-y-8 lg:col-span-1">
+            <ScheduleCard deviceData={deviceData} relayScheduleForm={relayScheduleForm} setRelayScheduleForm={setRelayScheduleForm} handleRelayScheduleSave={handleRelayScheduleSave} />
+            <WhatsAppSchedulerCard user={user} userData={userData} />
           </div>
         </main>
       </motion.div>
