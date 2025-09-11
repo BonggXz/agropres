@@ -2,23 +2,36 @@ import React, { useState, useEffect, useCallback, memo } from 'react';
 import { signOut } from 'firebase/auth';
 import { ref, onValue, set, get, push, remove, update } from "firebase/database";
 import { auth, db } from '../firebase/config';
-import { FaLightbulb, FaVolumeUp, FaTrash, FaPlus, FaSave, FaEdit, FaTimes, FaClock } from 'react-icons/fa';
-import { BsSoundwave, BsWifi, BsWifiOff, BsCalendar3, BsGearFill } from 'react-icons/bs';
+import {
+  FaLightbulb, FaVolumeUp, FaTrash, FaPlus, FaSave, FaEdit, FaTimes, FaClock
+} from 'react-icons/fa';
+import {
+  BsSoundwave, BsWifi, BsWifiOff, BsCalendar3, BsGearFill
+} from 'react-icons/bs';
 import { IoMdLogOut } from "react-icons/io";
 import { HiOutlineDevicePhoneMobile, HiSparkles } from 'react-icons/hi2';
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
 
-/* ============ anim variants & small components ============ */
+/* =============== Utils =============== */
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const secondsAgo = (unix) => Math.floor(Date.now() / 1000) - (unix || 0);
+const formatAgo = (unix) => {
+  const s = secondsAgo(unix);
+  if (s < 60) return `${s}s lalu`;
+  const m = Math.floor(s / 60); if (m < 60) return `${m}m lalu`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h}j lalu`;
+  const d = Math.floor(h / 24); return `${d}h lalu`;
+};
+
 const cardVariants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 24 },
   visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" },
+    opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.45, ease: "easeOut" }
   }),
 };
 
+/* =============== Small components =============== */
 const CustomSwitch = memo(({ isChecked, onChange, disabled = false, colorScheme = 'blue' }) => {
   const bgColor = isChecked
     ? colorScheme === 'yellow'
@@ -60,7 +73,7 @@ const ModeControl = memo(({ mode, onModeChange }) => {
   );
 });
 
-/* ============ header & status ============ */
+/* =============== Header & Status =============== */
 const DashboardHeader = memo(({ user }) => {
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -82,8 +95,8 @@ const DashboardHeader = memo(({ user }) => {
       try {
         await signOut(auth);
         Swal.fire({ title: 'Berhasil Logout!', icon: 'success', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-2xl' }});
-      } catch {
-        Swal.fire({ title: 'Error!', text: 'Gagal logout. Silakan coba lagi.', icon: 'error', customClass: { popup: 'rounded-2xl' }});
+      } catch (e) {
+        Swal.fire({ title: 'Error!', text: `Gagal logout. Silakan coba lagi. ${e?.message||''}`, icon: 'error', customClass: { popup: 'rounded-2xl' }});
       }
     }
   };
@@ -109,7 +122,7 @@ const DashboardHeader = memo(({ user }) => {
   );
 });
 
-const StatusCard = memo(({ isOnline }) => (
+const StatusCard = memo(({ isOnline, lastSeen }) => (
   <motion.div custom={1} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100">
     <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
     <div className="relative p-8">
@@ -126,7 +139,9 @@ const StatusCard = memo(({ isOnline }) => (
           </div>
           <div>
             <span className={`text-2xl font-bold ${isOnline ? 'text-green-700' : 'text-red-700'} transition-colors`}>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
-            <p className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'} mt-1 transition-colors`}>{isOnline ? 'Perangkat terhubung' : 'Perangkat tidak terhubung'}</p>
+            <p className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'} mt-1 transition-colors`}>
+              {isOnline ? 'Perangkat terhubung' : `Terakhir terlihat: ${formatAgo(lastSeen)}`}
+            </p>
           </div>
         </div>
         <div className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'} transition-colors`}></div>
@@ -135,7 +150,7 @@ const StatusCard = memo(({ isOnline }) => (
   </motion.div>
 ));
 
-/* ============ Control card (2 relay + servo angle) ============ */
+/* =============== Control Card (2 relay + servo angle) =============== */
 const ControlCard = memo(({
   deviceData,
   uvMode,
@@ -144,7 +159,8 @@ const ControlCard = memo(({
   handleManualToggle,
   servoAngleDeg,
   setServoAngleDeg,
-  pushServoAngle
+  pushServoAngle,
+  applyPreset
 }) => (
   <motion.div custom={2} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100">
     <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-full -translate-y-12 -translate-x-12 opacity-50"></div>
@@ -197,48 +213,71 @@ const ControlCard = memo(({
 
           {/* Servo angle */}
           <div className="mt-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Sudut Servo (0–180°) — set frekuensi via posisi knob
-            </label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Sudut Servo (0–180°) — set frekuensi via posisi knob</label>
             <input
               type="range" min="0" max="180" step="1"
               value={servoAngleDeg}
-              onChange={(e)=>setServoAngleDeg(parseInt(e.target.value, 10))}
+              onChange={(e)=>setServoAngleDeg(clamp(parseInt(e.target.value, 10) || 0, 0, 180))}
               className="w-full accent-indigo-600"
             />
-            <div className="mt-2 flex items-center justify-between text-sm text-gray-700">
-              <span>0°</span>
-              <span className="font-bold text-indigo-700">{servoAngleDeg}°</span>
-              <span>180°</span>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={pushServoAngle}
-              className="mt-4 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold shadow-lg"
-            >
-              Simpan Sudut
-            </motion.button>
-
-            {/* Info rentang hama (opsional) */}
-            <div className="mt-5 text-xs sm:text-sm text-gray-600">
-              <div className="rounded-xl bg-white/70 border border-blue-100 p-3">
-                <p className="font-semibold mb-1">Catatan patokan (tiap alat bisa beda):</p>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Burung: kira-kira knob di area rendah (1–5 kHz)</li>
-                  <li>Tikus: area menengah-rendah (≈20–55 kHz)</li>
-                  <li>Serangga: area menengah-tinggi (≈25–100 kHz)</li>
-                </ul>
-                <p className="mt-2 text-[11px] text-gray-500">Kalibrasi sudut→frekuensi tergantung potensiometer modulmu.</p>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <input
+                  type="number" min="0" max="180" step="1"
+                  value={servoAngleDeg}
+                  onChange={(e)=>setServoAngleDeg(clamp(parseInt(e.target.value, 10) || 0, 0, 180))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl"
+                />
               </div>
+              <motion.button
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={pushServoAngle}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold shadow"
+              >
+                Simpan Sudut
+              </motion.button>
+            </div>
+
+            {/* Presets */}
+            <div className="mt-4">
+              <p className="text-sm font-semibold text-gray-700 mb-2">Preset frekuensi (perkiraan sudut):</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button onClick={() => applyPreset('bird')} className="px-3 py-2 rounded-lg bg-white border border-blue-200 text-sm hover:bg-blue-50">Burung</button>
+                <button onClick={() => applyPreset('rat')} className="px-3 py-2 rounded-lg bg-white border border-blue-200 text-sm hover:bg-blue-50">Tikus</button>
+                <button onClick={() => applyPreset('insect')} className="px-3 py-2 rounded-lg bg-white border border-blue-200 text-sm hover:bg-blue-50">Serangga</button>
+              </div>
+              <p className="mt-2 text-[11px] text-gray-500">Kalibrasi sudut→frekuensi tergantung potensiometer modul di lapangan.</p>
             </div>
           </div>
+        </div>
+
+        {/* Quick actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (!deviceData?.__writeAll) return;
+              deviceData.__writeAll(false);
+            }}
+            className="px-4 py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:bg-gray-50 font-semibold"
+          >
+            Matikan Semua
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (!deviceData?.__writeAll) return;
+              deviceData.__writeAll(true);
+            }}
+            className="px-4 py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:bg-gray-50 font-semibold"
+          >
+            Nyalakan Semua
+          </motion.button>
         </div>
       </div>
     </div>
   </motion.div>
 ));
 
-/* ============ Schedule Card (tetap) ============ */
+/* =============== Schedule Card =============== */
 const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm, handleRelayScheduleSave }) => {
   const [isEditing, setIsEditing] = useState(false);
   return (
@@ -306,18 +345,18 @@ const ScheduleCard = memo(({ deviceData, relayScheduleForm, setRelayScheduleForm
   );
 });
 
-/* ============ WhatsApp Scheduler (tetap) ============ */
+/* =============== WhatsApp Scheduler =============== */
 const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   const [schedules, setSchedules] = useState({});
   const [newSchedule, setNewSchedule] = useState({ date: '', time: '', note: '', targetNumber: '', message: '' });
 
   useEffect(() => { if (userData?.whatsapp_number) setNewSchedule(prev => ({ ...prev, targetNumber: userData.whatsapp_number })); }, [userData]);
   useEffect(() => {
-    if (!user.uid) return;
+    if (!user?.uid) return;
     const schedulesRef = ref(db, `users/${user.uid}/pestisida_schedules`);
     const unsub = onValue(schedulesRef, (snap) => setSchedules(snap.val() || {}));
     return () => unsub();
-  }, [user.uid]);
+  }, [user?.uid]);
 
   const handleAddSchedule = async (e) => {
     e.preventDefault();
@@ -335,7 +374,9 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
       });
       setNewSchedule({ date: '', time: '', note: '', targetNumber: userData?.whatsapp_number || '', message: '' });
       Swal.fire('Jadwal Ditambahkan!', `Pengingat akan dikirim pada ${scheduleTime.toLocaleString('id-ID')}`, 'success');
-    } catch { Swal.fire('Error!', 'Gagal menambahkan jadwal.', 'error'); }
+    } catch (err) {
+      Swal.fire('Error!', `Gagal menambahkan jadwal. ${err?.message||''}`, 'error');
+    }
   };
 
   const handleDeleteSchedule = async (id) => {
@@ -345,20 +386,27 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
       customClass: { popup: 'rounded-2xl', confirmButton: 'px-4 py-2 text-white bg-red-600 rounded-lg font-semibold hover:bg-red-700 transition-colors', cancelButton: 'px-4 py-2 text-white bg-gray-500 rounded-lg font-semibold hover:bg-gray-600 transition-colors', actions: 'gap-4' },
       buttonsStyling: false
     });
-    if (result.isConfirmed) { await remove(ref(db, `users/${user.uid}/pestisida_schedules/${id}`)); Swal.fire('Berhasil Dihapus!', 'Jadwal telah dihapus.', 'success'); }
+    if (result.isConfirmed) {
+      await remove(ref(db, `users/${user.uid}/pestisida_schedules/${id}`));
+      Swal.fire('Berhasil Dihapus!', 'Jadwal telah dihapus.', 'success');
+    }
   };
 
-  // (Polling per menit dibiarkan seperti versi sebelumnya)
-  const checkSchedules = React.useCallback(() => {/* dibiarkan kosong di sisi UI */}, []);
-
+  // UI only (pengiriman real dilakukan oleh backend/Cloud Function milikmu)
+  const checkSchedules = useCallback(() => {/* noop */}, []);
   useEffect(() => { const i = setInterval(checkSchedules, 60000); return () => clearInterval(i); }, [checkSchedules]);
 
   return (
     <motion.div custom={4} variants={cardVariants} className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-100">
       <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full -translate-y-12 -translate-x-12 opacity-50"></div>
       <div className="relative p-6">
-        <div className="flex items-center space-x-3 mb-6"><div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl"><FaSave className="w-5 h-5 text-white" /></div><h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Pengingat WhatsApp</h2></div>
-        {/* Form & daftar jadwal tetap seperti semula */}
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
+            <FaSave className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Pengingat WhatsApp</h2>
+        </div>
+
         <form onSubmit={handleAddSchedule} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <input type="date" value={newSchedule.date} onChange={e => setNewSchedule({...newSchedule, date: e.target.value})} required className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
@@ -367,22 +415,31 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
           <input type="text" value={newSchedule.targetNumber} onChange={e => setNewSchedule({...newSchedule, targetNumber: e.target.value})} required placeholder="Nomor WA (cth: 62812...)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
           <textarea value={newSchedule.message} onChange={e => setNewSchedule({...newSchedule, message: e.target.value})} required placeholder="Isi pesan notifikasi..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="3"/>
           <textarea value={newSchedule.note} onChange={e => setNewSchedule({...newSchedule, note: e.target.value})} required placeholder="Catatan pribadi (tidak dikirim)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="2"/>
-          <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">
-            Tambah Jadwal
+
+          <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+            <FaPlus className="w-4 h-4" />
+            <span>Tambah Jadwal</span>
           </motion.button>
         </form>
+
         <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center"><BsCalendar3 className="w-4 h-4 mr-2 text-gray-600" />Jadwal Aktif</h3>
+          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+            <BsCalendar3 className="w-4 h-4 mr-2 text-gray-600" />Jadwal Aktif
+          </h3>
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
             <AnimatePresence>
               {Object.keys(schedules).length > 0 ? Object.entries(schedules).map(([id, s]) => (
                 s.status === 'active' && (
-                  <motion.div key={id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20, transition: { duration: 0.2 } }} className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                  <motion.div key={id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20, transition: { duration: 0.2 } }}
+                    className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800 text-sm">{new Date(s.datetime).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' })}</p>
                       <p className="text-sm text-gray-600 mt-1">{s.note}</p>
                     </div>
-                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => remove(ref(db, `users/${user.uid}/pestisida_schedules/${id}`))} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"> <FaTrash className="w-4 h-4" /> </motion.button>
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSchedule(id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors">
+                      <FaTrash className="w-4 h-4" />
+                    </motion.button>
                   </motion.div>
                 )
               )) : (<p className="text-center text-sm text-gray-500 py-4">Belum ada jadwal aktif</p>)}
@@ -394,17 +451,46 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
   );
 });
 
-/* ============ MAIN PAGE ============ */
+/* =============== Main Page =============== */
+const DEFAULT_PRESETS = {
+  ultrasonic: {
+    bird: 20,     // contoh sudut rendah
+    rat:  90,     // contoh tengah
+    insect: 150   // contoh tinggi
+  }
+};
+
 const DashboardPage = ({ user }) => {
   const [deviceData, setDeviceData] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [relayScheduleForm, setRelayScheduleForm] = useState({ uv_light: { on_time: '', off_time: '' }, ultrasonic: { on_time: '', off_time: '' } });
-
+  const [relayScheduleForm, setRelayScheduleForm] = useState({
+    uv_light: { on_time: '', off_time: '' },
+    ultrasonic: { on_time: '', off_time: '' }
+  });
   const [servoAngleDeg, setServoAngleDeg] = useState(90);
 
+  // helper untuk tulis semua kontrol sekaligus (dipakai quick actions)
+  const attachWriteAllHelper = useCallback((deviceId) => {
+    if (!deviceId) return;
+    setDeviceData(prev => ({
+      ...(prev || {}),
+      __writeAll: async (state) => {
+        try {
+          await update(ref(db), {
+            [`/devices/${deviceId}/controls/uv_light`]: !!state,
+            [`/devices/${deviceId}/controls/ultrasonic`]: !!state
+          });
+          Swal.fire('Sukses', `Semua kontrol di-${state ? 'nyalakan' : 'matikan'}.`, 'success');
+        } catch (e) {
+          Swal.fire('Gagal', `Tidak bisa mengubah semua kontrol. ${e?.message||''}`, 'error');
+        }
+      }
+    }));
+  }, []);
+
   useEffect(() => {
-    if (!user.uid) return;
+    if (!user?.uid) return;
     const userRef = ref(db, `users/${user.uid}`);
 
     get(userRef).then(snapshot => {
@@ -415,60 +501,89 @@ const DashboardPage = ({ user }) => {
         if (uData.device_id) {
           const deviceRef = ref(db, `devices/${uData.device_id}`);
           const unsub = onValue(deviceRef, snap => {
-            const data = snap.val();
+            const data = snap.val() || {};
             setDeviceData(data);
-            if (data?.relay_schedules) setRelayScheduleForm(prev => ({...prev, ...data.relay_schedules}));
+            if (data?.relay_schedules) {
+              setRelayScheduleForm(prev => ({
+                ...prev,
+                uv_light: { ...(prev.uv_light||{}), ...(data.relay_schedules.uv_light||{}) },
+                ultrasonic: { ...(prev.ultrasonic||{}), ...(data.relay_schedules.ultrasonic||{}) }
+              }));
+            }
             if (typeof data?.controls?.servo_angle_deg === 'number') setServoAngleDeg(data.controls.servo_angle_deg);
+            attachWriteAllHelper(uData.device_id);
             setLoading(false);
           });
           return () => unsub();
-        } else setLoading(false);
-      } else setLoading(false);
+        } else {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
     });
-  }, [user.uid]);
+  }, [user?.uid, attachWriteAllHelper]);
+
+  const deviceId = userData?.device_id;
+  const isOnline = !!(deviceData?.status?.is_online && secondsAgo(deviceData?.status?.last_seen) < 120);
+  const uvMode = deviceData?.control_modes?.uv_light || 'manual';
+  const ultrasonicMode = deviceData?.control_modes?.ultrasonic || 'manual';
 
   const handleModeChange = useCallback((control, newMode) => {
-    if (!userData?.device_id) return;
-    set(ref(db, `devices/${userData.device_id}/control_modes/${control}`), newMode);
-  }, [userData]);
+    if (!deviceId) return;
+    set(ref(db, `devices/${deviceId}/control_modes/${control}`), newMode);
+  }, [deviceId]);
 
   const handleManualToggle = useCallback((control, value) => {
-    if (!userData?.device_id) return;
+    if (!deviceId) return;
     setDeviceData(prev => ({ ...prev, controls: { ...(prev?.controls||{}), [control]: value }}));
-    const controlRef = ref(db, `devices/${userData.device_id}/controls/${control}`);
+    const controlRef = ref(db, `devices/${deviceId}/controls/${control}`);
     set(controlRef, value).catch(() => {
       setDeviceData(prev => ({ ...prev, controls: { ...(prev?.controls||{}), [control]: !value }}));
       Swal.fire('Update Gagal', 'Gagal mengubah status perangkat. Cek koneksi Anda.', 'error');
     });
-  }, [userData]);
+  }, [deviceId]);
 
   const handleRelayScheduleSave = useCallback(async () => {
-    if (!userData?.device_id) return;
+    if (!deviceId) return;
     try {
-      await update(ref(db), { [`/devices/${userData.device_id}/relay_schedules`]: relayScheduleForm });
+      await update(ref(db), { [`/devices/${deviceId}/relay_schedules`]: relayScheduleForm });
       Swal.fire({ title: 'Jadwal Disimpan!', text: 'Jadwal otomatis telah diperbarui.', icon: 'success', confirmButtonColor: '#10b981', customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl' } });
     } catch (error) {
       Swal.fire({ title: 'Error!', text: `Gagal menyimpan jadwal: ${error.message}`, icon: 'error', customClass: { popup: 'rounded-2xl' } });
     }
-  }, [userData, relayScheduleForm]);
+  }, [deviceId, relayScheduleForm]);
 
   const pushServoAngle = useCallback(async () => {
-    if (!userData?.device_id) return;
+    if (!deviceId) return;
     try {
-      await set(ref(db, `devices/${userData.device_id}/controls/servo_angle_deg`), Math.max(0, Math.min(180, parseInt(servoAngleDeg || 0, 10))));
-      Swal.fire({ title: 'Sudut Disimpan', icon: 'success', timer: 1000, showConfirmButton: false });
+      const val = clamp(parseInt(servoAngleDeg || 0, 10), 0, 180);
+      await set(ref(db, `devices/${deviceId}/controls/servo_angle_deg`), val);
+      Swal.fire({ title: 'Sudut Disimpan', icon: 'success', timer: 900, showConfirmButton: false });
     } catch {
       Swal.fire('Gagal', 'Tidak bisa mengirim sudut ke perangkat.', 'error');
     }
-  }, [userData, servoAngleDeg]);
+  }, [deviceId, servoAngleDeg]);
+
+  const applyPreset = useCallback(async (key) => {
+    const preset =
+      deviceData?.presets?.ultrasonic?.[key] ??
+      DEFAULT_PRESETS.ultrasonic[key];
+    if (typeof preset === 'number') {
+      setServoAngleDeg(clamp(preset, 0, 180));
+      await pushServoAngle();
+    } else {
+      Swal.fire('Preset tidak tersedia', 'Silakan kalibrasi dan simpan preset di database.', 'info');
+    }
+  }, [deviceData, pushServoAngle]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <div className="relative w-20 h-20">
-            <motion.div className="absolute w-full h-full border-4 border-blue-200 border-t-blue-600 rounded-full" animate={{ rotate: 360 }} transition={{ loop: Infinity, ease: "linear", duration: 1 }} />
-            <motion.div className="absolute w-full h-full border-4 border-transparent border-t-purple-600 rounded-full" animate={{ rotate: -360 }} transition={{ loop: Infinity, ease: "linear", duration: 1.5 }} />
+            <motion.div className="absolute w-full h-full border-4 border-blue-200 border-t-blue-600 rounded-full" animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1 }} />
+            <motion.div className="absolute w-full h-full border-4 border-transparent border-t-purple-600 rounded-full" animate={{ rotate: -360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1.5 }} />
           </div>
           <p className="mt-6 text-lg font-semibold text-gray-700">Memuat Dashboard...</p>
         </div>
@@ -476,17 +591,13 @@ const DashboardPage = ({ user }) => {
     );
   }
 
-  const isOnline = deviceData?.status?.is_online && (Date.now() / 1000 - deviceData.status.last_seen < 120);
-  const uvMode = deviceData?.control_modes?.uv_light || 'manual';
-  const ultrasonicMode = deviceData?.control_modes?.ultrasonic || 'manual';
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <motion.div initial="hidden" animate="visible" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader user={user} />
         <main className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="space-y-8 lg:col-span-2">
-            <StatusCard isOnline={isOnline} />
+            <StatusCard isOnline={isOnline} lastSeen={deviceData?.status?.last_seen} />
             <ControlCard
               deviceData={deviceData}
               uvMode={uvMode}
@@ -496,11 +607,17 @@ const DashboardPage = ({ user }) => {
               servoAngleDeg={servoAngleDeg}
               setServoAngleDeg={setServoAngleDeg}
               pushServoAngle={pushServoAngle}
+              applyPreset={applyPreset}
             />
           </div>
           <div className="space-y-8 lg:col-span-1">
-            <ScheduleCard deviceData={deviceData} relayScheduleForm={relayScheduleForm} setRelayScheduleForm={setRelayScheduleForm} handleRelayScheduleSave={handleRelayScheduleSave} />
-            {/* WhatsAppSchedulerCard dibiarkan ada bila masih dibutuhkan */}
+            <ScheduleCard
+              deviceData={deviceData}
+              relayScheduleForm={relayScheduleForm}
+              setRelayScheduleForm={setRelayScheduleForm}
+              handleRelayScheduleSave={handleRelayScheduleSave}
+            />
+            <WhatsAppSchedulerCard user={user} userData={userData} />
           </div>
         </main>
       </motion.div>
