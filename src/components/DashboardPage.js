@@ -16,32 +16,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 /* =============== Utils =============== */
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-const secondsAgo = (unix) => Math.floor(Date.now() / 1000) - (unix || 0);
 const formatAgo = (sec) => {
   const s = sec < 0 ? 0 : sec;
   if (s < 60) return `${s}s lalu`;
   const m = Math.floor(s / 60); if (m < 60) return `${m}m lalu`;
   const h = Math.floor(m / 60); if (h < 24) return `${h}j lalu`;
   const d = Math.floor(h / 24); return `${d}h lalu`;
-};
-
-/** Hitung 'berapa detik lalu' dari struktur status RTDB:
- * - Jika ada boot_time (ms) dan last_seen (detik sejak boot), gunakan keduanya.
- * - Jika last_seen berupa UNIX epoch seconds, gunakan langsung.
- * - Jika tidak valid, kembalikan null. */
-const secondsSinceLastSeen = (status) => {
-  if (!status) return null;
-  const ls = status.last_seen;
-  const bt = status.boot_time;
-  if (typeof ls === 'number' && typeof bt === 'number' && bt > 1e12) {
-    const lastTs = bt + (ls * 1000); // millis
-    const diffSec = Math.floor((Date.now() - lastTs) / 1000);
-    return diffSec;
-  }
-  if (typeof ls === 'number' && ls > 1e9) {
-    return secondsAgo(ls);
-  }
-  return null;
 };
 
 const cardVariants = {
@@ -160,9 +140,7 @@ const StatusCard = memo(({ isOnline, lastSeenSeconds }) => (
           <div>
             <span className={`text-2xl font-bold ${isOnline ? 'text-green-700' : 'text-red-700'} transition-colors`}>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
             <p className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'} mt-1 transition-colors`}>
-              {isOnline
-                ? 'Perangkat terhubung'
-                : `Terakhir terlihat: ${typeof lastSeenSeconds === 'number' ? formatAgo(lastSeenSeconds) : '—'}`}
+              {isOnline ? 'Perangkat terhubung' : (typeof lastSeenSeconds === 'number' ? `Terakhir terlihat: ${formatAgo(lastSeenSeconds)}` : 'Terakhir terlihat: —')}
             </p>
           </div>
         </div>
@@ -274,7 +252,7 @@ const ControlCard = memo(({
               <p className="mt-2 text-[11px] text-gray-500">Kalibrasi sudut→frekuensi tergantung potensiometer modul di lapangan.</p>
             </div>
 
-            {/* === Auto Sweep (RESPONSIVE FIX: mobile-first, tampil selalu) === */}
+            {/* === Auto Sweep (RESPONSIVE & bisa Manual / Otomatis) === */}
             <div className="mt-6 p-4 bg-white/70 rounded-xl border border-blue-200">
               <div className="flex flex-col gap-3">
                 {/* Row 1: Label + Profile */}
@@ -528,9 +506,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
 
 /* =============== Main Page =============== */
 const DEFAULT_PRESETS = {
-  ultrasonic: {
-    bird: 20, rat: 90, insect: 150
-  }
+  ultrasonic: { bird: 20, rat: 90, insect: 150 }
 };
 const DEFAULT_SWEEP_RANGES = {
   bird: { min: 10, max: 40 },
@@ -603,9 +579,15 @@ const DashboardPage = ({ user }) => {
 
   const deviceId = userData?.device_id;
 
-  // ==== STATUS ONLINE (ketat): hanya berdasarkan heartbeat ≤ 120 dtk ====
-  const lastSeenSec = secondsSinceLastSeen(deviceData?.status);
-  const isOnline = (typeof lastSeenSec === 'number' && lastSeenSec <= 120);
+  // === ONLINE/OFFLINE strictly dari status.is_online (sesuai permintaan) ===
+  const isOnline = !!deviceData?.status?.is_online;
+
+  // (Opsional) kalau tetap mau tampil "terakhir terlihat", isi dari status.last_seen (detik sejak boot) + status.boot_time (ms)
+  let lastSeenSeconds = null;
+  if (deviceData?.status && typeof deviceData.status.last_seen === 'number' && typeof deviceData.status.boot_time === 'number') {
+    const lastTs = deviceData.status.boot_time + deviceData.status.last_seen * 1000;
+    lastSeenSeconds = Math.floor((Date.now() - lastTs) / 1000);
+  }
 
   const uvMode = deviceData?.control_modes?.uv_light || 'manual';
   const ultrasonicMode = deviceData?.control_modes?.ultrasonic || 'manual';
@@ -675,12 +657,10 @@ const DashboardPage = ({ user }) => {
     }
   }, [deviceId, autoCfg]);
 
-  // Sinkronkan param ke RTDB saat running
+  // Sinkronkan param ke RTDB saat running (biar device/CF lanjut kerja)
   useEffect(() => {
     if (!deviceId) return;
-    if (autoCfg.running) {
-      writeAutoConfig(true);
-    }
+    if (autoCfg.running) writeAutoConfig(true);
   }, [deviceId, autoCfg.profile, autoCfg.min, autoCfg.max, autoCfg.step, autoCfg.intervalMs, autoCfg.running, writeAutoConfig]);
 
   // Interval client-side (preview) — tidak mematikan enabled saat unmount
@@ -702,11 +682,7 @@ const DashboardPage = ({ user }) => {
     };
 
     const id = setInterval(tick, autoCfg.intervalMs);
-    return () => {
-      canceled = true;
-      clearInterval(id);
-      // tidak menulis enabled=false di sini
-    };
+    return () => { canceled = true; clearInterval(id); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoCfg.running, autoCfg.min, autoCfg.max, autoCfg.step, autoCfg.intervalMs, deviceId]);
 
@@ -746,7 +722,7 @@ const DashboardPage = ({ user }) => {
           <div className="space-y-8 lg:col-span-2">
             <StatusCard
               isOnline={isOnline}
-              lastSeenSeconds={typeof lastSeenSec === 'number' ? lastSeenSec : null}
+              lastSeenSeconds={lastSeenSeconds}
             />
             <ControlCard
               deviceData={deviceData}
