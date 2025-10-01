@@ -25,27 +25,20 @@ const formatAgo = (sec) => {
   const d = Math.floor(h / 24); return `${d}h lalu`;
 };
 
-/** Hitung 'berapa detik lalu' dari struktur status RTDB kamu:
+/** Hitung 'berapa detik lalu' dari struktur status RTDB:
  * - Jika ada boot_time (ms) dan last_seen (detik sejak boot), gunakan keduanya.
  * - Jika last_seen berupa UNIX epoch seconds, gunakan langsung.
- * - Jika tidak valid, kembalikan null.
- * RTDB kamu menyimpan:
- *   devices/{id}/status.boot_time (ms epoch),
- *   devices/{id}/status.last_seen (detik sejak boot)  ← contoh 6369 di dump,
- *   devices/{id}/status.is_online (boolean).
- * (Lihat export RTDB)  */
+ * - Jika tidak valid, kembalikan null. */
 const secondsSinceLastSeen = (status) => {
   if (!status) return null;
   const ls = status.last_seen;
   const bt = status.boot_time;
   if (typeof ls === 'number' && typeof bt === 'number' && bt > 1e12) {
-    // interpretasi: last_seen = detik sejak boot
-    const lastTs = bt + (ls * 1000);
+    const lastTs = bt + (ls * 1000); // millis
     const diffSec = Math.floor((Date.now() - lastTs) / 1000);
     return diffSec;
   }
   if (typeof ls === 'number' && ls > 1e9) {
-    // interpretasi: last_seen = UNIX epoch seconds
     return secondsAgo(ls);
   }
   return null;
@@ -281,48 +274,75 @@ const ControlCard = memo(({
               <p className="mt-2 text-[11px] text-gray-500">Kalibrasi sudut→frekuensi tergantung potensiometer modul di lapangan.</p>
             </div>
 
-            {/* === Auto Sweep (muncul hanya jika mode Ultrasonic = 'auto') === */}
-            {ultrasonicMode === 'auto' && (
-              <div className="mt-6 p-4 bg-white/70 rounded-xl border border-blue-200">
-                <div className="flex flex-wrap items-center gap-3">
+            {/* === Auto Sweep (RESPONSIVE FIX: mobile-first, tampil selalu) === */}
+            <div className="mt-6 p-4 bg-white/70 rounded-xl border border-blue-200">
+              <div className="flex flex-col gap-3">
+                {/* Row 1: Label + Profile */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <span className="text-sm font-semibold text-gray-700">Auto Sweep:</span>
                   <select
                     value={autoCfg.profile}
                     onChange={(e)=>setAutoCfg(s => ({...s, profile: e.target.value}))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white w-full sm:w-40"
                   >
                     <option value="bird">Burung</option>
                     <option value="rat">Tikus</option>
                     <option value="insect">Serangga</option>
                     <option value="custom">Custom</option>
                   </select>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600">Min</span>
-                    <input type="number" className="w-16 px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                      value={autoCfg.min} onChange={e=>setAutoCfg(s=>({...s, min: clamp(parseInt(e.target.value||0,10),0,180)}))}/>
-                    <span className="text-xs text-gray-600">Max</span>
-                    <input type="number" className="w-16 px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                      value={autoCfg.max} onChange={e=>setAutoCfg(s=>({...s, max: clamp(parseInt(e.target.value||0,10),0,180)}))}/>
-                    <span className="text-xs text-gray-600">Step</span>
-                    <input type="number" className="w-14 px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                      value={autoCfg.step} onChange={e=>setAutoCfg(s=>({...s, step: clamp(parseInt(e.target.value||0,10),1,30)}))}/>
-                    <span className="text-xs text-gray-600">Interval(ms)</span>
-                    <input type="number" className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                      value={autoCfg.intervalMs} onChange={e=>setAutoCfg(s=>({...s, intervalMs: clamp(parseInt(e.target.value||0,10),200,10000)}))}/>
-                  </div>
+                </div>
 
-                  <div className="flex-1"></div>
-                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                {/* Row 2: Params */}
+                <div className="grid grid-cols-2 sm:grid-cols-8 gap-2">
+                  <label className="text-xs text-gray-600 self-center">Min</label>
+                  <input
+                    type="number"
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm w-full min-w-0 text-center"
+                    value={autoCfg.min}
+                    onChange={e=>setAutoCfg(s=>({...s, min: clamp(parseInt(e.target.value||0,10),0,180)}))}
+                  />
+
+                  <label className="text-xs text-gray-600 self-center">Max</label>
+                  <input
+                    type="number"
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm w-full min-w-0 text-center"
+                    value={autoCfg.max}
+                    onChange={e=>setAutoCfg(s=>({...s, max: clamp(parseInt(e.target.value||0,10),0,180)}))}
+                  />
+
+                  <label className="text-xs text-gray-600 self-center">Step</label>
+                  <input
+                    type="number"
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm w-full min-w-0 text-center"
+                    value={autoCfg.step}
+                    onChange={e=>setAutoCfg(s=>({...s, step: clamp(parseInt(e.target.value||0,10),1,30)}))}
+                  />
+
+                  <label className="text-xs text-gray-600 self-center">Interval (ms)</label>
+                  <input
+                    type="number"
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm w-full min-w-0 text-center"
+                    value={autoCfg.intervalMs}
+                    onChange={e=>setAutoCfg(s=>({...s, intervalMs: clamp(parseInt(e.target.value||0,10),200,10000)}))}
+                  />
+                </div>
+
+                {/* Row 3: Button */}
+                <div className="flex justify-end">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                     onClick={toggleAutoRun}
-                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${autoCfg.running ? 'bg-red-600' : 'bg-emerald-600'}`}>
-                    {autoCfg.running ? <><FaPause className="w-4 h-4"/> Hentikan</> : <><FaPlay className="w-4 h-4"/> Mulai</>}
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm w-full sm:w-auto shrink-0 ${autoCfg.running ? 'bg-red-600' : 'bg-emerald-600'}`}
+                  >
+                    {autoCfg.running ? (<><FaPause className="w-4 h-4"/> Hentikan</>) : (<><FaPlay className="w-4 h-4"/> Mulai</>)}
                   </motion.button>
                 </div>
-                <p className="mt-2 text-[11px] text-gray-500">
-                  Parameter juga ditulis ke RTDB <code>/devices/&lt;id&gt;/auto_sweep/*</code> agar bisa dijalankan oleh firmware/Cloud Function.
+
+                <p className="text-[11px] text-gray-500">
+                  Parameter ditulis ke RTDB <code>/devices/&lt;id&gt;/auto_sweep/*</code>. Device/Cloud Function tetap bisa jalan meski dashboard ditutup.
                 </p>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -469,7 +489,7 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
           </div>
           <input type="text" value={newSchedule.targetNumber} onChange={e => setNewSchedule({...newSchedule, targetNumber: e.target.value})} required placeholder="Nomor WA (cth: 62812...)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"/>
           <textarea value={newSchedule.message} onChange={e => setNewSchedule({...newSchedule, message: e.target.value})} required placeholder="Isi pesan notifikasi..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="3"/>
-          <textarea value={newSchedule.note} onChange={e => setNewSchedule({...newSchedule, note: e.target.value})} required placeholder="Catatan pribadi (tidak dikirim)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus-border-green-500 resize-none" rows="2"/>
+          <textarea value={newSchedule.note} onChange={e => setNewSchedule({...newSchedule, note: e.target.value})} required placeholder="Catatan pribadi (tidak dikirim)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none" rows="2"/>
 
           <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
@@ -509,16 +529,12 @@ const WhatsAppSchedulerCard = memo(({ user, userData }) => {
 /* =============== Main Page =============== */
 const DEFAULT_PRESETS = {
   ultrasonic: {
-    bird: 20,     // contoh sudut rendah
-    rat:  90,     // contoh tengah
-    insect: 150   // contoh tinggi
+    bird: 20, rat: 90, insect: 150
   }
 };
-
-// Default rentang auto sweep per hama (bisa disesuaikan lapangan)
 const DEFAULT_SWEEP_RANGES = {
-  bird:   { min: 10,  max: 40 },
-  rat:    { min: 70,  max: 110 },
+  bird: { min: 10, max: 40 },
+  rat: { min: 70, max: 110 },
   insect: { min: 130, max: 170 }
 };
 
@@ -587,14 +603,9 @@ const DashboardPage = ({ user }) => {
 
   const deviceId = userData?.device_id;
 
-  // ==== STATUS ONLINE (fix jam/last seen) ====
+  // ==== STATUS ONLINE (ketat): hanya berdasarkan heartbeat ≤ 120 dtk ====
   const lastSeenSec = secondsSinceLastSeen(deviceData?.status);
-  const isOnline = (() => {
-    // Online jika flag true *atau* heartbeat <= 120 detik
-    if (deviceData?.status?.is_online) return true;
-    if (typeof lastSeenSec === 'number' && lastSeenSec <= 120) return true;
-    return false;
-  })();
+  const isOnline = (typeof lastSeenSec === 'number' && lastSeenSec <= 120);
 
   const uvMode = deviceData?.control_modes?.uv_light || 'manual';
   const ultrasonicMode = deviceData?.control_modes?.ultrasonic || 'manual';
@@ -647,8 +658,7 @@ const DashboardPage = ({ user }) => {
     }
   }, [deviceData, pushServoAngle]);
 
-  // ==== AUTO SWEEP: jalan saat mode 'auto' ====
-  // Tulis konfigurasi ke RTDB agar firmware/CF dapat membaca.
+  // ==== AUTO SWEEP ====
   const writeAutoConfig = useCallback(async (running) => {
     if (!deviceId) return;
     try {
@@ -665,46 +675,54 @@ const DashboardPage = ({ user }) => {
     }
   }, [deviceId, autoCfg]);
 
-  // Interval client-side (sementara) supaya langsung berfungsi meski firmware belum ambil alih:
+  // Sinkronkan param ke RTDB saat running
   useEffect(() => {
-    if (ultrasonicMode !== 'auto' || !autoCfg.running || !deviceId) return;
+    if (!deviceId) return;
+    if (autoCfg.running) {
+      writeAutoConfig(true);
+    }
+  }, [deviceId, autoCfg.profile, autoCfg.min, autoCfg.max, autoCfg.step, autoCfg.intervalMs, autoCfg.running, writeAutoConfig]);
+
+  // Interval client-side (preview) — tidak mematikan enabled saat unmount
+  useEffect(() => {
+    if (!autoCfg.running || !deviceId) return;
     let canceled = false;
     let dir = autoCfg.dir;
     let current = clamp(servoAngleDeg, autoCfg.min, autoCfg.max);
 
     const tick = async () => {
       if (canceled) return;
-      // Bounce
       if (current >= autoCfg.max) dir = -1;
       if (current <= autoCfg.min) dir = +1;
       current = clamp(current + dir * autoCfg.step, autoCfg.min, autoCfg.max);
-      // Tulis sudut ke RTDB
       try {
         await set(ref(db, `devices/${deviceId}/controls/servo_angle_deg`), current);
       } catch {}
-      // simpan ke state agar slider ikut bergerak
       setServoAngleDeg(current);
     };
-
-    // tulis config awal
-    writeAutoConfig(true);
 
     const id = setInterval(tick, autoCfg.intervalMs);
     return () => {
       canceled = true;
       clearInterval(id);
-      writeAutoConfig(false);
+      // tidak menulis enabled=false di sini
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ultrasonicMode, autoCfg.running, autoCfg.min, autoCfg.max, autoCfg.step, autoCfg.intervalMs, deviceId]);
+  }, [autoCfg.running, autoCfg.min, autoCfg.max, autoCfg.step, autoCfg.intervalMs, deviceId]);
 
-  const toggleAutoRun = useCallback(() => {
-    // jika profile diganti, sesuaikan min/max-nya sudah otomatis oleh useEffect di atas
-    setAutoCfg(s => ({ ...s, running: !s.running }));
-  }, []);
-
-  // Saat profile preset dipilih dari tombol "Preset" manual, jangan ganggu AutoCfg.
-  // (Tidak ada perubahan di sini.)
+  const toggleAutoRun = useCallback(async () => {
+    if (!deviceId) return;
+    const next = !autoCfg.running;
+    try {
+      if (next) {
+        await set(ref(db, `devices/${deviceId}/controls/ultrasonic`), true);
+      }
+      setAutoCfg(s => ({ ...s, running: next }));
+      await writeAutoConfig(next);
+    } catch (e) {
+      Swal.fire('Gagal', `Tidak bisa ${next ? 'memulai' : 'menghentikan'} Auto Sweep. ${e?.message||''}`, 'error');
+    }
+  }, [autoCfg.running, deviceId, writeAutoConfig]);
 
   if (loading) {
     return (
